@@ -12899,7 +12899,7 @@ example_cNMF.usages.k_10.dt_2_00.consensus.txt
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[44]:</div>
+<div class="prompt input_prompt">In&nbsp;[7]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">tsnedat</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">tsne_results</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">celldata</span><span class="p">,</span> <span class="n">left_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -12917,7 +12917,7 @@ example_cNMF.usages.k_10.dt_2_00.consensus.txt
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[45]:</div>
+<div class="prompt input_prompt">In&nbsp;[8]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">cell_tableau10_color_id</span> <span class="o">=</span> <span class="n">tsnedat</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">values</span> <span class="o">-</span> <span class="mi">1</span>
@@ -12935,7 +12935,7 @@ example_cNMF.usages.k_10.dt_2_00.consensus.txt
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[46]:</div>
+<div class="prompt input_prompt">In&nbsp;[9]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">normal_filter</span> <span class="o">=</span> <span class="n">tsnedat</span><span class="p">[</span><span class="s1">&#39;extra-status&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Normal&#39;</span>
@@ -12951,7 +12951,7 @@ example_cNMF.usages.k_10.dt_2_00.consensus.txt
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[49]:</div>
+<div class="prompt input_prompt">In&nbsp;[10]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.gridspec</span> <span class="k">as</span> <span class="nn">gridspec</span>
@@ -13048,7 +13048,7 @@ example_cNMF.usages.k_10.dt_2_00.consensus.txt
 
 <div class="output_area">
 
-<div class="prompt output_prompt">Out[49]:</div>
+<div class="prompt output_prompt">Out[10]:</div>
 
 
 
@@ -13080,7 +13080,7 @@ example_cNMF.usages.k_10.dt_2_00.consensus.txt
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[24]:</div>
+<div class="prompt input_prompt">In&nbsp;[11]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">tsne_and_usages</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">normalized_usage_matrix</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">tsne_results</span><span class="p">,</span> <span class="n">left_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -13097,7 +13097,7 @@ example_cNMF.usages.k_10.dt_2_00.consensus.txt
 
 <div class="output_area">
 
-<div class="prompt output_prompt">Out[24]:</div>
+<div class="prompt output_prompt">Out[11]:</div>
 
 
 
@@ -13223,7 +13223,7 @@ example_cNMF.usages.k_10.dt_2_00.consensus.txt
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[25]:</div>
+<div class="prompt input_prompt">In&nbsp;[12]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">cmap</span> <span class="o">=</span> <span class="n">palettable</span><span class="o">.</span><span class="n">cartocolors</span><span class="o">.</span><span class="n">sequential</span><span class="o">.</span><span class="n">Sunset_7</span><span class="o">.</span><span class="n">get_mpl_colormap</span><span class="p">()</span>
