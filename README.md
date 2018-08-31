@@ -77,12 +77,12 @@ can be modified from the command line. The --local-density-threshold determines 
 use. 2.0 or above means that nothing will be filtered out. 
 Example command:
 ```
-    python ./cnmf.py consensus --output-dir ./example_data --name example_cNMF --components 9 --local-density-threshold 0.08
+    python ./cnmf.py consensus --output-dir ./example_data --name example_cNMF --components 9 --local-density-threshold 0.01
 ```
 By the end of this step, you should have the following files in your directory:
-   - TPM Z-score unit spectra matrix - example_data/example_cNMF/example_cNMF.gene_spectra_score.k_9.dt_0_08.txt
-   - TPM unit spectra matrix - example_data/example_cNMF/example_cNMF.gene_spectra_tpm.k_9.dt_0_08.txt
-   - Usage matrix example_data/example_cNMF/example_cNMF.usages.k_9.dt_0_08.consensus.txt
-   - Diagnostic plot - example_data/example_cNMF/example_cNMF.clustering.k_9.dt_0_08.pdf
+   - TPM Z-score unit spectra matrix - example_data/example_cNMF/example_cNMF.gene_spectra_score.k_9.dt_0_01.txt
+   - TPM unit spectra matrix - example_data/example_cNMF/example_cNMF.gene_spectra_tpm.k_9.dt_0_01.txt
+   - Usage matrix example_data/example_cNMF/example_cNMF.usages.k_9.dt_0_01.consensus.txt
+   - Diagnostic plot - example_data/example_cNMF/example_cNMF.clustering.k_9.dt_0_01.pdf
     
     
