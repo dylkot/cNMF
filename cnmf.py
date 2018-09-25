@@ -657,7 +657,7 @@ if __name__=="__main__":
     import sys, argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('command', type=str, choices=['prepare', 'factorize', 'combine', 'consensus', 'select_k'])
+    parser.add_argument('command', type=str, choices=['prepare', 'factorize', 'combine', 'consensus', 'k_selection_plot'])
     parser.add_argument('--name', type=str, help='[all] Name for this analysis. All output will be placed in [output-dir]/[name]/...', nargs='?', default=None)
     parser.add_argument('--output-dir', type=str, help='[all] Output directory. All output will be placed in [output-dir]/[name]/...', nargs='?')
 
