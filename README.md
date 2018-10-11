@@ -9,7 +9,7 @@
    - source activate cnmf_env
    - conda install --yes --channel bioconda --channel conda-forge --channel defaults cython==0.28.2 fastcluster==1.1.24 jupyter==1.0.0 jupyterlab==0.32.1 matplotlib==2.2.2 numpy==1.12.1 palettable==3.1.1 pandas==0.23.0 scipy==1.1.0 && conda clean --yes --all
    - pip install git+https://github.com/scikit-learn/scikit-learn.git@3b24a4855db8564ddccb011228c9f4a51a519c9a
-   - pip install --upgrade --no-cache-dir --upgrade-strategy=only-if-needed bhtsne==0.1.9 (only necessary if you want to generate the tsne output yourself)
+   - pip install --upgrade --no-cache-dir --upgrade-strategy=only-if-needed bhtsne==0.1.9 #(only needed to generate the tsne in the example)
 
 
 
