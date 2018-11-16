@@ -5,6 +5,7 @@
 
 # Make sure you have the appropriate packages installed.
 > We reccomend [conda](https://conda.io/miniconda.html) as a package management system to install the necessary python packages. After installing and configuring conda, you can create an environment for this workflow as follows
+   - conda update -n base conda # Make sure conda is up to date
    - conda create -n cnmf_env python=3.6
    - source activate cnmf_env
    - conda install --yes --channel bioconda --channel conda-forge --channel defaults cython==0.28.2 fastcluster==1.1.24 jupyter==1.0.0 jupyterlab==0.32.1 matplotlib==2.2.2 numpy==1.12.1 palettable==3.1.1 pandas==0.23.0 scipy==1.1.0 && conda clean --yes --all
