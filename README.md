@@ -1,6 +1,8 @@
 # cNMF code and example data
 
-> Running cNMF proceeds through a serious of steps starting from a filtered count matrix and ending with a set of estimated gene expression program spectra and their usages for each cell in the dataset. This can be a powerful approach to analyzing single-cell RNA-Seq data where some cells express activity programs in addition to their identity program. For now, if you use this code, please cite [the manuscript](https://www.biorxiv.org/content/early/2018/04/30/310599) on bioarxiv
+> Running cNMF proceeds through a serious of steps starting from a filtered count matrix and ending with a set of estimated gene expression program spectra and their usages for each cell in the dataset. This can be a powerful approach to analyzing single-cell RNA-Seq data where some cells express activity programs in addition to their identity program. For now, if you use this code, please cite [the manuscript](https://www.biorxiv.org/content/early/2018/04/30/310599) on bioarxiv.
+
+In addition to this code for running cNMF, all of the analysis in the manuscript available for exploration and re-execution on [Code Ocean](https://codeocean.com/2018/11/20/identifying-gene-expression-programs-of-cell-type-identity-and-cellular-activity-with-single-cell-rna-seq/code). This includes examples of running cNMF on real data and downstream analyses.
 
 
 # Make sure you have the appropriate packages installed.
@@ -43,7 +45,7 @@ python cnmf.py --help
    python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 0 
   ```
 This would run all the factorization steps for the first worker. See the analyze_example_data.ipynb notebook for examples of how you could submit all of the workers to run in parallel either      using [GNU parralel](https://www.gnu.org/software/parallel/) or an [UGER scheduler](http://www.univa.com/resources/files/univa_user_guide_univa__grid_engine_854.pdf). Tip: The implementation of
-NMF in scikit-learn by default will use extensive multi-threading so if you are using GNU parallel on a large machine, you should use a relatively small number of workers to get the best performance.
+NMF in scikit-learn by default will use half of the available cores on a machine by default. Therefore, if you are using GNU parallel on a large machine, you should use 2 workers to get the best performance.
   
 ### Step 3 combine the individual spectra results files for each K into a merged file
 > Since a separate file has been created for each replicate for each K, we combine the replicates for each K as below:
