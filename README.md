@@ -1,8 +1,6 @@
 # cNMF code and example data
 
-> Running cNMF proceeds through a serious of steps starting from a filtered count matrix and ending with a set of estimated gene expression program spectra and their usages for each cell in the dataset. This can be a powerful approach to analyzing single-cell RNA-Seq data where some cells express activity programs in addition to their identity program. For now, if you use this code, please cite [the manuscript](https://www.biorxiv.org/content/early/2018/04/30/310599) on bioarxiv.
-
-In addition to this code for running cNMF, all of the analysis in the manuscript available for exploration and re-execution on [Code Ocean](https://codeocean.com/2018/11/20/identifying-gene-expression-programs-of-cell-type-identity-and-cellular-activity-with-single-cell-rna-seq/code). This includes examples of running cNMF on real data and downstream analyses.
+> Running cNMF proceeds through a serious of steps starting from a filtered count matrix and ending with a set of estimated gene expression program spectra and their usages for each cell in the dataset. This can be a powerful approach to analyzing single-cell RNA-Seq data where some cells express activity programs in addition to their identity program. For now, if you use this code, please cite [the manuscript](https://www.biorxiv.org/content/early/2018/04/30/310599) on bioarxiv. In addition to this code for running cNMF, all of the analysis in the manuscript available for exploration and re-execution on [Code Ocean](https://codeocean.com/2018/11/20/identifying-gene-expression-programs-of-cell-type-identity-and-cellular-activity-with-single-cell-rna-seq/code). This includes examples of running cNMF on real data and downstream analyses.
 
 
 # Make sure you have the appropriate packages installed.
