@@ -67,7 +67,7 @@ def main():
     print('ls %s/%s' % (argdict['output_dir'], argdict['name'])
     print(sp.check_output('%s/%s' % (argdict['output_dir'], argdict['name']), shell=True))
 
-    print('ls %s/%s/cnmf_tmp/' % (argdict['output_dir'], argdict['name'])
+    print('ls %s/%s/cnmf_tmp/' % (argdict['output_dir'], argdict['name']))
     print(sp.check_output('%s/%s/cnmf_tmp' % (argdict['output_dir'], argdict['name']), shell=True))
 
     clean_cmd = 'rm %s/%s/cnmf_tmp/*.iter_*.df.npz' % (argdict['output_dir'], argdict['name'])
