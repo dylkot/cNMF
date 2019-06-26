@@ -6,8 +6,8 @@ SHELL ["/bin/bash", "-c"]
 # Updating Ubuntu packages
 RUN apt-get update && yes|apt-get upgrade
 
-# Adding wget, bzip2
-RUN apt-get install -y wget bzip2
+# Adding wget, bzip2, parallel, git
+RUN apt-get install -y wget bzip2 parallel git-core
 
 # Anaconda installing
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -23,5 +23,8 @@ RUN conda update conda -y
 # Prepare cNMF env
 RUN conda create -n cnmf_env python=3.6 -y
 RUN echo "source activate cnmf_env" > ~/.bashrc
-
 RUN conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster matplotlib numpy pandas scipy scikit-learn && conda clean --yes --all
+
+# Download cNMF
+WORKDIR /home
+RUN git clone https://github.com/dylkot/cNMF.git --branch development --single-branch
