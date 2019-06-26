@@ -23,7 +23,7 @@ RUN conda update conda -y
 # Prepare cNMF env
 RUN conda create -n cnmf_env python=3.6 -y
 RUN echo "source activate cnmf_env" > ~/.bashrc
-RUN conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster matplotlib numpy pandas scipy scikit-learn && conda clean --yes --all
+RUN source activate cnmf_env && conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster matplotlib numpy pandas scipy scikit-learn && conda clean --yes --all
 
 # Download cNMF
 WORKDIR /home
