@@ -669,7 +669,7 @@ if __name__=="__main__":
     parser.add_argument('--worker-index', type=int, help='[all] Index of current worker (the first worker should have index 0).', default=0)
     parser.add_argument('--seed', type=int, help='[prepare] Master seed for generating the seed list.', default=None)
     parser.add_argument('--numgenes', type=int, help='[prepare] Number of high variance genes to use for matrix factorization.', default=None)
-    parser.add_argument('--genes_file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
+    parser.add_argument('--genes-file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
     parser.add_argument('--tpm', type=str, help='[prepare] Pre-computed TPM values as df.npz or tab separated txt file. Cell x Gene matrix. If none is provided, TPM will be calculated automatically. This can be helpful if a particular normalization is desired.', default=None)
 
     parser.add_argument('--local-density-threshold', type=str, help='[consensus] Threshold for the local density filtering. This string must convert to a greater >0 and <=2. The input value will be replaced', default='0.5')

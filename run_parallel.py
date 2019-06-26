@@ -23,11 +23,14 @@ def main():
     parser.add_argument('--total-workers', type=int, help='[all] Total workers that are working together.', default=1)
     parser.add_argument('--seed', type=int, help='[prepare] Master seed for generating the seed list.', default=None)
     parser.add_argument('--numgenes', type=int, help='[prepare] Number of high variance genes to use for matrix factorization.', default=None)
-    parser.add_argument('--genes_file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
+    parser.add_argument('--genes-file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
     parser.add_argument('--tpm', type=str, help='[prepare] Pre-computed TPM values as df.npz or tab separated txt file. Cell x Gene matrix. If none is provided, TPM will be calculated automatically. This can be helpful if a particular normalization is desired.', default=None)
 
+    # Collect args
     args = parser.parse_args()
     argdict = vars(args)
+
+    # convert components from list to string
     argdict['components'] = ' '.join([str(k) for k in argdict['components']])
     
     # Directory containing cNMF and this script
