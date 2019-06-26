@@ -61,15 +61,6 @@ def main():
     sp.call(Kselect_cmd, shell=True)
 
     # Delete individual iteration files
-    print('ls %s' % argdict['output_dir'])
-    print(sp.check_output('ls %s' % argdict['output_dir'], shell=True))
-    
-    print('ls %s/%s' % (argdict['output_dir'], argdict['name'])
-    print(sp.check_output('%s/%s' % (argdict['output_dir'], argdict['name']), shell=True))
-
-    print('ls %s/%s/cnmf_tmp/' % (argdict['output_dir'], argdict['name']))
-    print(sp.check_output('%s/%s/cnmf_tmp' % (argdict['output_dir'], argdict['name']), shell=True))
-
     clean_cmd = 'rm %s/%s/cnmf_tmp/*.iter_*.df.npz' % (argdict['output_dir'], argdict['name'])
     print(clean_cmd)
     sp.call(clean_cmd, shell=True)
