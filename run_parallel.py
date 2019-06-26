@@ -35,7 +35,7 @@ def main():
     if len(cnmfdir) == 0: cnmfdir = '.'   
  
     # Run prepare
-    prepare_opts = ['--{} {}'.format(k,argdict[k]) for k in argdict.keys() if argdict[k] is not None]
+    prepare_opts = ['--{} {}'.format(k.replace('_', '-'),argdict[k]) for k in argdict.keys() if argdict[k] is not None]
     prepare_cmd = 'python {}/cnmf.py prepare '.format(cnmfdir)
     prepare_cmd += ' '.join(prepare_opts)
     print(prepare_cmd)
