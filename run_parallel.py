@@ -60,8 +60,10 @@ def main():
     print(Kselect_cmd)
     sp.call(Kselect_cmd, shell=True)
 
-
-
+    # Delete individual iteration files
+    clean_cmd = 'rm %s/cnmf_tmp/*.iter_*.df.npz' % argdict['output_dir']
+    print(clean_cmd)
+    sp.call(clean_cmd, shell=True)
 
 
 if __name__ == '__main__':
