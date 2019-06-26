@@ -27,5 +27,4 @@ RUN source activate cnmf_env && conda install --yes --channel bioconda --channel
 
 # Download cNMF
 WORKDIR /home
-RUN echo "Cloning cNMF repo    "
 RUN git clone https://github.com/dylkot/cNMF.git --branch development --single-branch
