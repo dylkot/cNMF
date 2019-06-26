@@ -23,7 +23,7 @@ def save_df_to_text(obj, filename):
     obj.to_csv(filename, sep='\t')
 
 def load_df_from_npz(filename):
-    with np.load(filename) as f:
+    with np.load(filename, allow_pickle=True) as f:
         obj = pd.DataFrame(**f)
     return obj
 
