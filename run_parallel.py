@@ -39,23 +39,23 @@ def main():
     prepare_cmd = 'python {}/cnmf.py prepare '.format(cnmfdir)
     prepare_cmd += ' '.join(prepare_opts)
     print(prepare_cmd)
-    #sp.call(prepare_cmd, shell=True)
+    sp.call(prepare_cmd, shell=True)
 
     # Run factorize
     workind = ' '.join([str(x) for x in range(argdict['total_workers'])])
     factorize_cmd = 'nohup parallel python %s/cnmf.py factorize --output-dir %s --name %s --worker-index {} ::: %s' % (cnmfdir, argdict['output_dir'], argdict['name'], workind)
     print(factorize_cmd)
-    #sp.call(factorize_cmd, shell=True)
+    sp.call(factorize_cmd, shell=True)
 
     # Run combine
     combine_cmd = 'python %s/cnmf.py combine --output-dir %s --name %s' % (cnmfdir, argdict['output_dir'], argdict['name'])
     print(combine_cmd)
-    #sp.call(combine_cmd, shell=True)
+    sp.call(combine_cmd, shell=True)
 
     # Plot K selection
     Kselect_cmd = 'python %s/cnmf.py k_selection_plot --output-dir %s --name %s' % (cnmfdir, argdict['output_dir'], argdict['name'])
     print(Kselect_cmd)
-    #sp.call(Kselect_cmd, shell=True)
+    sp.call(Kselect_cmd, shell=True)
 
 
 
