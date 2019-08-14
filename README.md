@@ -30,7 +30,7 @@ python cnmf.py --help
   ```
   - --output-dir - the output directory into which all results will be placed
   - --name - a subdirectory output_dir/name will be created and all output files will have name as their prefix
-  - -c - path to the counts file that will be used
+  - -c - path to the counts file that will be used. This should be a raw counts matrix (I.e. not log-transformed or normalized per cell library size)
   - -k - list of K values that will be tested for cNMF
   - --n-iter - specifies the number of NMF iterations to run for each K
   - --total-workers - specifies how many workers (e.g. cores on a machine or nodes on a compute farm) can be used in parallel
@@ -43,7 +43,7 @@ python cnmf.py --help
    python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 0 
   ```
 This would run all the factorization steps for the first worker. See the analyze_example_data.ipynb notebook for examples of how you could submit all of the workers to run in parallel either      using [GNU parralel](https://www.gnu.org/software/parallel/) or an [UGER scheduler](http://www.univa.com/resources/files/univa_user_guide_univa__grid_engine_854.pdf). Tip: The implementation of
-NMF in scikit-learn by default will use half of the available cores on a machine by default. Therefore, if you are using GNU parallel on a large machine, you should use 2 workers to get the best performance.
+NMF in scikit-learn by default will use half of the available cores on a machine. Therefore, if you are using GNU parallel on a large machine, you should use 2 workers to get the best performance.
   
 ### Step 3 combine the individual spectra results files for each K into a merged file
 > Since a separate file has been created for each replicate for each K, we combine the replicates for each K as below:
