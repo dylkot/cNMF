@@ -216,7 +216,13 @@ class cNMF():
         high_var_counts = counts_df.loc[:, high_variance_genes_filter]
         norm_counts = high_var_counts/high_var_counts.std()
         norm_counts = norm_counts.fillna(0.0)
-        return norm_counts
+        
+        zerocells = norm_counts.sum(axis=1)==0
+        if zerocells.sum()>0:
+            print('Warning: %d cells have zero counts of overdispersed genes' % zerocells.sum())
+            print('Consensus step may not run when this is the case')
+        
+        return(norm_counts)
 
     def save_norm_counts(self, norm_counts_df):
         self._initialize_dirs()
