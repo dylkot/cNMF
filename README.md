@@ -36,6 +36,8 @@ python cnmf.py --help
   - --total-workers - specifies how many workers (e.g. cores on a machine or nodes on a compute farm) can be used in parallel
   - --seed - the master seed that will be used to generate the individual seed for each NMF replicate
   - --numgenes - the number of higest variance genes that will be used for running the factorization. Removing low variance genes helps amplify the signal and is an important factor in correctly inferring programs in the data. However, don't worry, at the end the spectra is re-fit to include estimates for all genes, even those that weren't included in the high-variance set.
+  
+**Please note that the counts matrix must not contain any genes or cells with 0 counts. Those must be filtered out prior to running cNMF**
 
 ### Step 2 factorize the matrix using the parameters specified previously
 > Next you run NMF for all of the replicates specified previously. The basic idea is that the NMF tasks have been divied up amongst the number of workers specified in step 1. You just need to specify the index of a given worker (from 0 to total-workers-1) to start its jobs like in the following:
