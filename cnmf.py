@@ -180,13 +180,13 @@ class cNMF():
 
                 'consensus_stats': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.stats.k_%d.dt_%s.df.npz'),
 
-                'clustering_plot': os.path.join(self.output_dir, self.name, self.name+'.clustering.k_%d.dt_%s.pdf'),
+                'clustering_plot': os.path.join(self.output_dir, self.name, self.name+'.clustering.k_%d.dt_%s.png'),
                 'gene_spectra_score': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.gene_spectra_score.k_%d.dt_%s.df.npz'),
                 'gene_spectra_score__txt': os.path.join(self.output_dir, self.name, self.name+'.gene_spectra_score.k_%d.dt_%s.txt'),
                 'gene_spectra_tpm': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.gene_spectra_tpm.k_%d.dt_%s.df.npz'),
                 'gene_spectra_tpm__txt': os.path.join(self.output_dir, self.name, self.name+'.gene_spectra_tpm.k_%d.dt_%s.txt'),
 
-                'k_selection_plot' :  os.path.join(self.output_dir, self.name, self.name+'.k_selection.pdf'),
+                'k_selection_plot' :  os.path.join(self.output_dir, self.name, self.name+'.k_selection.png'),
                 'k_selection_stats' :  os.path.join(self.output_dir, self.name, self.name+'.k_selection_stats.df.npz'),
             }
 
@@ -331,12 +331,12 @@ class cNMF():
             ``non_negative_factorization`` default arguments:
                 alpha=0.0
                 l1_ratio=0.0
-                beta_loss='frobenius'
-                solver='cd'
+                beta_loss='kullback-leibler'
+                solver='mu'
                 tol=1e-4,
                 max_iter=200
                 regularization=None
-
+                init='random'
                 random_state, n_components are both set by the prespecified run_params.
 
         """
@@ -348,11 +348,12 @@ class cNMF():
         _nmf_kwargs = dict(
             alpha=0.0,
             l1_ratio=0.0,
-            beta_loss='frobenius',
-            solver='cd',
+            beta_loss='kullback-leibler',
+            solver='mu',
             tol=1e-4,
             max_iter=400,
             regularization=None,
+            init='random'
         )
         _nmf_kwargs.update(nmf_kwargs)
 
@@ -458,11 +459,12 @@ class cNMF():
 
             alpha=0.0,
             l1_ratio=0.0,
-            beta_loss='frobenius',
-            solver='cd',
+            beta_loss='kullback-leibler',
+            solver='mu',
             tol=1e-4,
             max_iter=1000,
             regularization=None,
+            init='random'
         )
         _, rf_usages = self._nmf(norm_counts,
                                           nmf_kwargs=refit_nmf_kwargs,
@@ -507,11 +509,12 @@ class cNMF():
 
             alpha=0.0,
             l1_ratio=0.0,
-            beta_loss='frobenius',
-            solver='cd',
+            beta_loss='kullback-leibler',
+            solver='mu',
             tol=1e-4,
             max_iter=1000,
             regularization=None,
+            init='random'
         )
         _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs,
                                           topic_labels=np.arange(1,k+1))
@@ -534,13 +537,16 @@ class cNMF():
 
                 cl_filter = kmeans_cluster_labels==cl
 
+                if cl_filter.sum() > 1:
+                    cl_dist = squareform(topics_dist[cl_filter, :][:, cl_filter])
+                    cl_dist[cl_dist < 0] = 0 #Rarely get floating point arithmetic issues
+                    cl_link = linkage(cl_dist, 'average')
+                    cl_leaves_order = leaves_list(cl_link)
 
-                cl_dist = squareform(topics_dist[cl_filter, :][:, cl_filter])
-                cl_dist[cl_dist < 0] = 0 #Rarely get floating point arithmetic issues
-                cl_link = linkage(cl_dist, 'average')
-                cl_leaves_order = leaves_list(cl_link)
-
-                spectra_order += list(np.where(cl_filter)[0][cl_leaves_order])
+                    spectra_order += list(np.where(cl_filter)[0][cl_leaves_order])
+                else:
+                    ## Corner case where a component only has one element
+                    spectra_order += list(np.where(cl_filter)[0])
 
 
             from matplotlib import gridspec
@@ -700,7 +706,7 @@ if __name__=="__main__":
             else:
                 tpm = pd.read_csv(args.tpm, sep='\t', index_col=0)
         else:
-        	tpm = compute_tpm(input_counts)
+            tpm = compute_tpm(input_counts)
 
         save_df_to_npz(tpm, cnmf_obj.paths['tpm'])
         input_tpm_stats = pd.DataFrame([tpm.mean(axis=0), tpm.std(axis=0)],
