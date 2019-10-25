@@ -164,7 +164,7 @@ class cNMF():
 
             self.paths = {
                 'normalized_counts' : os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.norm_counts.df.npz'),
-                'nmf_parameters' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.nmf_params.df.npz'),
+                'nmf_replicate_parameters' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.nmf_params.df.npz'),
                 'tpm' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.tpm.df.npz'),
                 'tpm_stats' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.tpm_stats.df.npz'),
 
@@ -224,12 +224,15 @@ class cNMF():
         
         return(norm_counts)
 
+    
     def save_norm_counts(self, norm_counts_df):
         self._initialize_dirs()
         save_df_to_npz(norm_counts_df, self.paths['normalized_counts'])
 
+        
     def get_nmf_iter_params(self, ks, n_iter = 100,
-                               random_state_seed = None):
+                               random_state_seed = None,
+                               beta_loss = 'kullback-leibler'):
         """
         Create a DataFrame with parameters for NMF iterations.
 
@@ -255,26 +258,37 @@ class cNMF():
         # Remove any repeated k values, and order.
         k_list = sorted(set(list(ks)))
 
-
-        #random_state = sklearn.utils.check_random_state(random_state_seed)
-
         n_runs = len(ks)* n_iter
-        #nmf_seeds = random_state.randint(0, np.iinfo(np.int32).max+1, size=n_runs)
 
         np.random.seed(seed=random_state_seed)
         nmf_seeds = np.random.randint(low=1, high=(2**32)-1, size=n_runs)
 
-
-        run_params = []
+        replicate_params = []
         for i, (k, r) in enumerate(itertools.product(k_list, range(n_iter))):
-            run_params.append([k, r, nmf_seeds[i]])
-        run_params = pd.DataFrame(run_params, columns = ['n_components', 'iter', 'nmf_seed'])
+            replicate_params.append([k, r, nmf_seeds[i]])
+        replicate_params = pd.DataFrame(replicate_params, columns = ['n_components', 'iter', 'nmf_seed'])
 
-        return run_params
+        _nmf_kwargs = dict(
+                        alpha=0.0,
+                        l1_ratio=0.0,
+                        beta_loss=beta_loss,
+                        solver='mu',
+                        tol=1e-4,
+                        max_iter=400,
+                        regularization=None,
+                        init='random'
+                        )
+        
+        ## Coordinate descent is faster than multiplicative update but only works for frobenius
+        if beta_loss == 'frobenius':
+            _nmf_kwargs['solver'] = 'cd'
 
-    def save_nmf_iter_params(self, run_params):
+        return(replicate_params, _nmf_kwargs)
+
+
+    def save_nmf_iter_params(self, replicate_params):
         self._initialize_dirs()
-        save_df_to_npz(run_params, self.paths['nmf_parameters'])
+        save_df_to_npz(replicate_params, self.paths['nmf_replicate_parameters'])
 
 
     def _nmf(self, X, nmf_kwargs, topic_labels=None):
@@ -341,9 +355,8 @@ class cNMF():
 
         """
         self._initialize_dirs()
-        run_params = load_df_from_npz(self.paths['nmf_parameters'])
+        run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
-
 
         _nmf_kwargs = dict(
             alpha=0.0,
@@ -373,7 +386,7 @@ class cNMF():
 
 
     def combine_nmf(self, k, remove_individual_iterations=False):
-        run_params = load_df_from_npz(self.paths['nmf_parameters'])
+        run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         print('Combining factorizations for k=%d.'%k)
 
         self._initialize_dirs()
@@ -473,9 +486,24 @@ class cNMF():
         rf_pred_norm_counts = rf_usages.dot(median_spectra)
 
         # Compute prediction error as a frobenius norm
-        frobenius_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
-
-        consensus_stats = pd.DataFrame([k, density_threshold, stability, frobenius_error],
+        #prediction_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
+        
+        # Compute prediction error as a generalized KL divergence
+        EPSILON = np.finfo(np.float32).eps
+        WH_data = rf_pred_norm_counts.values.ravel()
+        X_data = norm_counts.values.ravel()
+        indices = X_data > EPSILON
+        WH_data = WH_data[indices]
+        X_data = X_data[indices]        
+        WH_data[WH_data == 0] = EPSILON
+        sum_WH = np.dot(np.sum(rf_usages, axis=0), np.sum(median_spectra, axis=1))
+        # computes np.sum(X * log(X / WH)) only where X is nonzero
+        div = X_data / WH_data
+        prediction_error = np.dot(X_data, np.log(div))
+        # add full np.sum(np.dot(W, H)) - np.sum(X)
+        prediction_error += sum_WH - X_data.sum()
+        
+        consensus_stats = pd.DataFrame([k, density_threshold, stability, prediction_error],
                     index = ['k', 'local_density_threshold', 'stability', 'prediction_error'],
                     columns = ['stats'])
 
@@ -603,12 +631,13 @@ class cNMF():
             if close_clustergram_fig:
                 plt.close(fig)
 
+
     def k_selection_plot(self, close_fig=True):
         '''
         Borrowed from Alexandrov Et Al. 2013 Deciphering Mutational Signatures
         publication in Cell Reports
         '''
-        run_params = load_df_from_npz(self.paths['nmf_parameters'])
+        run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         stats = []
         for k in sorted(set(run_params.n_components)):
 
@@ -637,6 +666,7 @@ class cNMF():
 
         ax1.set_xlabel('Number of Components', fontsize=15)
         ax1.grid('on')
+        plt.tight_layout()
         fig.savefig(self.paths['k_selection_plot'], dpi=250)
         if close_fig:
             plt.close(fig)
@@ -670,25 +700,24 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('command', type=str, choices=['prepare', 'factorize', 'combine', 'consensus', 'k_selection_plot'])
-    parser.add_argument('--name', type=str, help='[all] Name for this analysis. All output will be placed in [output-dir]/[name]/...', nargs='?', default=None)
-    parser.add_argument('--output-dir', type=str, help='[all] Output directory. All output will be placed in [output-dir]/[name]/...', nargs='?')
+    parser.add_argument('--name', type=str, help='[all] Name for analysis. All output will be placed in [output-dir]/[name]/...', nargs='?', default='cNMF')
+    parser.add_argument('--output-dir', type=str, help='[all] Output directory. All output will be placed in [output-dir]/[name]/...', nargs='?', default='.')
 
-    parser.add_argument('-c', '--counts', type=str, help='[prepare] Input counts in cell x gene matrix as df.npz or tab separated txt file')
+    parser.add_argument('-c', '--counts', type=str, help='[prepare] Input (cell x gene) counts matrix as df.npz or tab delimited text file')
     parser.add_argument('-k', '--components', type=int, help='[prepare] Numper of components (k) for matrix factorization. Several can be specified with "-k 8 9 10"', nargs='+')
-    parser.add_argument('-n', '--n-iter', type=int, help='[prepare] Numper of iteration for each factorization', default=100)
-
-    parser.add_argument('--total-workers', type=int, help='[all] Total workers that are working together.', default=1)
-    parser.add_argument('--worker-index', type=int, help='[all] Index of current worker (the first worker should have index 0).', default=0)
-    parser.add_argument('--seed', type=int, help='[prepare] Master seed for generating the seed list.', default=None)
-    parser.add_argument('--numgenes', type=int, help='[prepare] Number of high variance genes to use for matrix factorization.', default=None)
+    parser.add_argument('-n', '--n-iter', type=int, help='[prepare] Numper of factorization replicates', default=100)
+    parser.add_argument('--total-workers', type=int, help='[all] Total number of workers to distribute jobs to', default=1)
+    parser.add_argument('--seed', type=int, help='[prepare] Seed for pseudorandom number generation', default=None)
     parser.add_argument('--genes-file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
-    parser.add_argument('--tpm', type=str, help='[prepare] Pre-computed TPM values as df.npz or tab separated txt file. Cell x Gene matrix. If none is provided, TPM will be calculated automatically. This can be helpful if a particular normalization is desired.', default=None)
+    parser.add_argument('--numgenes', type=int, help='[prepare] Number of high variance genes to use for matrix factorization.', default=None)
+    parser.add_argument('--tpm', type=str, help='[prepare] Pre-computed (cell x gene) TPM values as df.npz or tab separated txt file. If not provided TPM will be calculated automatically', default=None)
+    parser.add_argument('--beta-loss', type=str, choices=['frobenius', 'kullback-leibler', 'itakura-saito'], help='[prepare] Loss function for NMF.', default='kullback-leibler')
 
-    parser.add_argument('--local-density-threshold', type=str, help='[consensus] Threshold for the local density filtering. This string must convert to a greater >0 and <=2. The input value will be replaced', default='0.5')
-    parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Number of nearest neighbors for local density filtering, as a fraction of the total number of iterations.', default=0.30)
+    parser.add_argument('--worker-index', type=int, help='[factorize] Index of current worker (the first worker should have index 0)', default=0)
+    
+    parser.add_argument('--local-density-threshold', type=str, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default='0.5')
+    parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Fraction of the number of replicates to use as nearest neighbors for local density filtering', default=0.30)
     parser.add_argument('--show-clustering', dest='show_clustering', help='[consensus] Produce a clustergram figure summarizing the spectra clustering', action='store_true')
-    parser.add_argument('--stats-only', dest='stats_only', help='[consensus] Stop after outputting consistency stats without outputting spectra or usages', action='store_true')
-
 
     args = parser.parse_args()
     cnmf_obj = cNMF(output_dir=args.output_dir, name=args.name)
@@ -713,7 +742,6 @@ if __name__=="__main__":
              index = ['__mean', '__std']).T
         save_df_to_npz(input_tpm_stats, cnmf_obj.paths['tpm_stats'])
 
-
         if args.genes_file is not None:
             highvargenes = open(args.genes_file).read().split('\n')
         else:
@@ -721,7 +749,7 @@ if __name__=="__main__":
 
         norm_counts = cnmf_obj.get_norm_counts(input_counts, num_highvar_genes=args.numgenes, high_variance_genes_filter=highvargenes)
         cnmf_obj.save_norm_counts(norm_counts)
-        run_params = cnmf_obj.get_nmf_iter_params(ks=args.components, n_iter=args.n_iter, random_state_seed=args.seed)
+        run_params = cnmf_obj.get_nmf_iter_params(ks=args.components, n_iter=args.n_iter, random_state_seed=args.seed, beta_loss=args.beta_loss)
         cnmf_obj.save_nmf_iter_params(run_params)
 
 
@@ -753,7 +781,7 @@ if __name__=="__main__":
 
         for k in ks:
             merged_spectra = load_df_from_npz(cnmf_obj.paths['merged_spectra']%k)
-            cnmf_obj.consensus(k, args.local_density_threshold, args.local_neighborhood_size, args.show_clustering, args.stats_only)
+            cnmf_obj.consensus(k, args.local_density_threshold, args.local_neighborhood_size, args.show_clustering)
 
     elif args.command == 'k_selection_plot':
         cnmf_obj.k_selection_plot()
