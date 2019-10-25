@@ -4,7 +4,6 @@ import os, errno
 import datetime
 import uuid
 import itertools
-import sklearn
 
 from scipy.spatial.distance import squareform
 from sklearn.decomposition.nmf import non_negative_factorization
@@ -165,6 +164,8 @@ class cNMF():
             self.paths = {
                 'normalized_counts' : os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.norm_counts.df.npz'),
                 'nmf_replicate_parameters' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.nmf_params.df.npz'),
+                'nmf_run_parameters' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.nmf_idvrun_params.yaml'),
+
                 'tpm' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.tpm.df.npz'),
                 'tpm_stats' :  os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.tpm_stats.df.npz'),
 
@@ -286,7 +287,7 @@ class cNMF():
         return(replicate_params, _nmf_kwargs)
 
 
-    def save_nmf_iter_params(self, replicate_params):
+    def save_nmf_iter_params(self, replicate_params, run_params):
         self._initialize_dirs()
         save_df_to_npz(replicate_params, self.paths['nmf_replicate_parameters'])
 
@@ -486,8 +487,9 @@ class cNMF():
         rf_pred_norm_counts = rf_usages.dot(median_spectra)
 
         # Compute prediction error as a frobenius norm
-        #prediction_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
+        prediction_error = ((norm_counts - rf_pred_norm_counts)**2).sum().sum()
         
+        '''
         # Compute prediction error as a generalized KL divergence
         EPSILON = np.finfo(np.float32).eps
         WH_data = rf_pred_norm_counts.values.ravel()
@@ -502,6 +504,7 @@ class cNMF():
         prediction_error = np.dot(X_data, np.log(div))
         # add full np.sum(np.dot(W, H)) - np.sum(X)
         prediction_error += sum_WH - X_data.sum()
+        '''
         
         consensus_stats = pd.DataFrame([k, density_threshold, stability, prediction_error],
                     index = ['k', 'local_density_threshold', 'stability', 'prediction_error'],
@@ -749,15 +752,15 @@ if __name__=="__main__":
 
         norm_counts = cnmf_obj.get_norm_counts(input_counts, num_highvar_genes=args.numgenes, high_variance_genes_filter=highvargenes)
         cnmf_obj.save_norm_counts(norm_counts)
-        run_params = cnmf_obj.get_nmf_iter_params(ks=args.components, n_iter=args.n_iter, random_state_seed=args.seed, beta_loss=args.beta_loss)
-        cnmf_obj.save_nmf_iter_params(run_params)
+        (replicate_params, run_params) = cnmf_obj.get_nmf_iter_params(ks=args.components, n_iter=args.n_iter, random_state_seed=args.seed, beta_loss=args.beta_loss)
+        cnmf_obj.save_nmf_iter_params(replicate_params, run_params)
 
 
     elif args.command == 'factorize':
         cnmf_obj.run_nmf(worker_i=args.worker_index, total_workers=args.total_workers)
 
     elif args.command == 'combine':
-        run_params = load_df_from_npz(cnmf_obj.paths['nmf_parameters'])
+        run_params = load_df_from_npz(cnmf_obj.paths['nmf_replicate_parameters'])
 
         if type(args.components) is int:
             ks = [args.components]
@@ -770,7 +773,7 @@ if __name__=="__main__":
             cnmf_obj.combine_nmf(k)
 
     elif args.command == 'consensus':
-        run_params = load_df_from_npz(cnmf_obj.paths['nmf_parameters'])
+        run_params = load_df_from_npz(cnmf_obj.paths['nmf_replicate_parameters'])
 
         if type(args.components) is int:
             ks = [args.components]
