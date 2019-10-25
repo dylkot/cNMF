@@ -4,6 +4,7 @@ import os, errno
 import datetime
 import uuid
 import itertools
+import yaml
 
 from scipy.spatial.distance import squareform
 from sklearn.decomposition.nmf import non_negative_factorization
@@ -290,6 +291,8 @@ class cNMF():
     def save_nmf_iter_params(self, replicate_params, run_params):
         self._initialize_dirs()
         save_df_to_npz(replicate_params, self.paths['nmf_replicate_parameters'])
+        with open(self.paths['nmf_run_parameters'], 'w') as F:
+            yaml.dump(run_params, F)
 
 
     def _nmf(self, X, nmf_kwargs, topic_labels=None):
@@ -322,13 +325,26 @@ class cNMF():
 
 
     def run_nmf(self,
-                nmf_kwargs = dict(),
                 worker_i=1, total_workers=1,
                 ):
         """
         Iteratively run NMF with prespecified parameters.
 
         Use the `worker_i` and `total_workers` parameters for parallelization.
+
+        Generic kwargs for NMF are loaded from self.paths['nmf_run_parameters'], defaults below::
+
+            ``non_negative_factorization`` default arguments:
+                alpha=0.0
+                l1_ratio=0.0
+                beta_loss='kullback-leibler'
+                solver='mu'
+                tol=1e-4,
+                max_iter=200
+                regularization=None
+                init='random'
+                random_state, n_components are both set by the prespecified self.paths['nmf_replicate_parameters'].
+
 
         Parameters
         ----------
@@ -340,36 +356,11 @@ class cNMF():
             Parameters for NMF iterations.
             (Output of ``prepare_nmf_iter_params``)
 
-        nmf_kwargs = dict, optional (default: {})
-            kwargs to be passed to ``non_negative_factorization``, updating the defaults below.
-
-            ``non_negative_factorization`` default arguments:
-                alpha=0.0
-                l1_ratio=0.0
-                beta_loss='kullback-leibler'
-                solver='mu'
-                tol=1e-4,
-                max_iter=200
-                regularization=None
-                init='random'
-                random_state, n_components are both set by the prespecified run_params.
-
         """
         self._initialize_dirs()
         run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
-
-        _nmf_kwargs = dict(
-            alpha=0.0,
-            l1_ratio=0.0,
-            beta_loss='kullback-leibler',
-            solver='mu',
-            tol=1e-4,
-            max_iter=400,
-            regularization=None,
-            init='random'
-        )
-        _nmf_kwargs.update(nmf_kwargs)
+        _nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']))
 
         jobs_for_this_worker = worker_filter(range(len(run_params)), worker_i, total_workers)
         for idx in jobs_for_this_worker:
@@ -378,7 +369,6 @@ class cNMF():
             print('[Worker %d]. Starting task %d.' % (worker_i, idx))
             _nmf_kwargs['random_state'] = p['nmf_seed']
             _nmf_kwargs['n_components'] = p['n_components']
-
 
             spectra, usages = self._nmf(norm_counts, _nmf_kwargs)
 
@@ -415,7 +405,8 @@ class cNMF():
         return combined_spectra
 
 
-    def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False, skip_density_and_return_after_stats = False, close_clustergram_fig=True):
+    def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False,
+                  skip_density_and_return_after_stats = False, close_clustergram_fig=True):
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         norm_counts = load_df_from_npz(self.paths['normalized_counts'])
 
@@ -465,21 +456,13 @@ class cNMF():
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
         # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
-        refit_nmf_kwargs = dict(
-            n_components = k,
-            H = median_spectra.values,
-            update_H = False,
-            shuffle = True,
-
-            alpha=0.0,
-            l1_ratio=0.0,
-            beta_loss='kullback-leibler',
-            solver='mu',
-            tol=1e-4,
-            max_iter=1000,
-            regularization=None,
-            init='random'
-        )
+        _nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']))
+        refit_nmf_kwargs = _nmf_kwargs.update({
+                                                n_components = k,
+                                                H = median_spectra.values,
+                                                update_H = False
+                                                })        
+        
         _, rf_usages = self._nmf(norm_counts,
                                           nmf_kwargs=refit_nmf_kwargs,
                                           topic_labels=np.arange(1,k+1))
@@ -532,21 +515,13 @@ class cNMF():
         # Convert spectra to TPM units, and obtain results for all genes by running last step of NMF
         # with usages fixed and TPM as the input matrix
         norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)
-        fit_tpm_nmf_kwargs = dict(
-            n_components = k,
-            H = norm_usages.T.values,
-            update_H = False,
-            shuffle = True,
-
-            alpha=0.0,
-            l1_ratio=0.0,
-            beta_loss='kullback-leibler',
-            solver='mu',
-            tol=1e-4,
-            max_iter=1000,
-            regularization=None,
-            init='random'
-        )
+        fit_tpm_nmf_kwargs = _nmf_kwargs.update({
+                                                n_components = k,
+                                                H = norm_usages.T.values,
+                                                update_H = False
+                                                })    
+        
+        
         _, spectra_tpm = self._nmf(tpm.T, nmf_kwargs=fit_tpm_nmf_kwargs,
                                           topic_labels=np.arange(1,k+1))
         spectra_tpm = spectra_tpm.T
