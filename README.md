@@ -9,10 +9,10 @@ You can read more about the method in the publication [here](https://elifescienc
 # Updates from version 1.0
  - Now operates by default on sparse matrices. Use --densify option in prepare step if data is not dense
  - Now takes Scanpy AnnData object files (.h5ad) as input
- - Now has option to use KL divergence beta_loss instead of Frobenius
- - Now includes a Docker file for creating a Docker container to run cNMF in parallel with cloud compute
- - Added a tutorial on a simple PBMC dataset
- - Other small changes
+ - Now has option to use KL divergence beta_loss instead of Frobenius. Frobenius is the default because it is much faster.
+ - Includes a Docker file for creating a Docker container to run cNMF in parallel with cloud compute
+ - Includes a tutorial on a simple PBMC dataset
+ - Other minor fixes
 
 # Installing cNMF
 
@@ -26,7 +26,7 @@ We use [conda](https://conda.io/miniconda.html) as a package management system t
 conda update -yn base conda # Make sure conda is up to date
 conda create -yn cnmf_env python=3.6
 conda activate cnmf_env
-conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 pyyaml==5.1.2 scanpy==1.4.4.post1 parallel==pl5.22.0_0 && conda clean --yes --all
+conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 pyyaml==5.1.2 scanpy==1.4.4.post1 parallel && conda clean --yes --all
     
 ## Only needed to load the example notebook in jupyterlab but not needed for non-interactive runs ## 
 conda install --yes jupyterlab==1.1.4 ipython==7.8.0 && conda clean --yes --all
@@ -58,12 +58,21 @@ however that image isn't fully updated at present.
 
 cNMF runs NMF multiple times and combines the results of each replicates to obtain a more robust consensus estimate. Since many replicates are run, typically for many choices of K, this can be much faster if replicates are run in parallel.
 
-This cNMF code is designed to be agnostic to the method of parallelization. It divides up all of the factorization replicates into a specified number of "workers" which could correspond to cores on a computer or nodes on a compute cluster. So for example, if you are running cNMF for 5 values of K (K= 1..5) and 100 iterations each, there would be 500 total jobs. Those jobs could be divided up amongst 100 workers that would each run 5 jobs, 500 workers that would each run 1 job, or 1 worker that would run all 500 jobs.
+This cNMF code is designed to be agnostic to the method of parallelization. It divides up all of the factorization replicates into a specified number of "workers" which could correspond to cores on a computer, nodes on a compute cluster, or virtual machines in the cloud. In any of these cases, if you are running cNMF for 5 values of K (K= 1..5) and 100 iterations each, there would be 500 total jobs. Those jobs could be divided up amongst 100 workers that would each run 5 jobs, 500 workers that would each run 1 job, or 1 worker that would run all 500 jobs.
     
 You specify the total number of workers in the prepare command (step 1) with the --total-workers flag. Then, for step 2 you run all of the jobs for a specific worker using the --worker-index flag. Step 3 combines the results files that were output by all of the workers. The workers are indexed from 0 to (total-workers - 1).
     
-We provide example commands in the [simulated dataset tutorial](#analyze_simulated_example_data.ipynb) and the [PBMC dataset tutorial](#analyze_pbmc_example_data.ipynb) for distributing the tasks over multiple cores on a large machine with [GNU parallel](https://www.gnu.org/software/parallel/) as well as for distributing them to multiple nodes on an UGER compute cluster. By default the simulated tutorial does not use any parallelization while the PBMC dataset does. And the simulated dataset tutorial starts from a raw text file while the PBMC dataset starts from a matrix market file (such as the ones outputted by 10X) and creates a scanpy AnnData object.
+We provide example commands in the [simulated dataset tutorial](#analyze_simulated_example_data.ipynb) and the [PBMC dataset tutorial](#analyze_pbmc_example_data.ipynb) for distributing the tasks over multiple cores on a large machine with [GNU parallel](https://www.gnu.org/software/parallel/) as well as for distributing them to multiple nodes on an UGER compute cluster. By default, the  tutorials do not use any parallelization but simply provide the commands that would be used to run the steps in parallel.
 
+    
+# Input data and Scanpy
+Input counts data can be provided to cNMF in 2 ways:
+
+    - 1. as a raw tab-delimited text file containing row labels with cell IDs (barcodes) and column labels as gene IDs
+    - 2. as a scanpy file ending in .h5ad containg counts as the data feature. See the PBMC dataset tutorial for an example of how to generate the Scanpy object from the data provided by 10X. Because Scanpy uses sparse matrices by default, the .h5ad data structure can take up much less memory than the raw counts matrix and can be much faster to load.
+    
+    
+    
 # Step by step guide 
 
 You can see all possible command line options by running
@@ -71,8 +80,8 @@ You can see all possible command line options by running
 python cnmf.py --help
 ```
 
-and see the [simulated dataset tutorial](Tutorials/analyze_simulated_example_data.ipynb) and the [PBMC dataset tutorial](Tutorials/analyze_pbmc_example_data.ipynb) for a step by step walkthrough with example data. We also describe the key ideas and parameters for each step below.
-
+and see the [simulated dataset tutorial](Tutorials/analyze_simulated_example_data.ipynb) and the [PBMC dataset tutorial](Tutorials/analyze_pbmc_example_data.ipynb) for a step by step walkthrough with example data. We also describe the key ideas and parameters for each step below.    
+    
 ### Step 1 - normalize the input matrix and prepare the run parameters
     
 Example command:
@@ -82,20 +91,22 @@ python ./cnmf.py prepare --output-dir ./example_data --name example_cNMF -c ./ex
 ```
 
 Path structure
-  - --output-dir - the output directory into which all results will be placed
-  - --name - a subdirectory output_dir/name will be created and all output files will have name as their prefix
+  - --output-dir - the output directory into which all results will be placed. Default: `.`
+  - --name - a subdirectory output_dir/name will be created and all output files will have name as their prefix. Default: `cNMF`
 
 Input data
-  - -c - path to the cell x gene counts file. Either tab-delimited text  or a df.npz compressed pandas dataframe
-  - --tpm [Optional] - Pre-computed Cell x Gene data in transcripts per million or other per-cell normalized data. If none is provided, TPM will be calculated automatically. This can be helpful if a particular normalization is desired.
-  - --genes-file [Optional] - List of over-dispersed genes to be used for the factorization steps. If not provided, over-dispersed genes will be calculated automatically and the number of genes to use can be set by the --numgenes parameter below
+  - -c - path to the cell x gene counts file. This is expected to be a tab-delimited text file or a Scanpy object saved in the h5ad format
+  - --tpm [Optional] - Pre-computed Cell x Gene data in transcripts per million or other per-cell normalized data. If none is provided, TPM will be calculated automatically. This can be helpful if a particular normalization is desired. These can be loaded in the same formats as the counts file. Default: `None`
+  - --genes-file [Optional] - List of over-dispersed genes to be used for the factorization steps. If not provided, over-dispersed genes will be calculated automatically and the number of genes to use can be set by the --numgenes parameter below. Default: `None`
     
 Parameters
   - -k - space separated list of K values that will be tested for cNMF
-  - --n-iter -  number of NMF iterations to run for each K
-  - --total-workers - specifies how many workers (e.g. cores on a machine or nodes on a compute farm) can be used in parallel
-  - --seed - the master seed that will be used to generate the individual seed for each NMF replicate
-  - --numgenes - the number of higest variance genes that will be used for running the factorization. Removing low variance genes helps amplify the signal and is an important factor in correctly inferring programs in the data. However, don't worry, at the end the spectra is re-fit to include estimates for all genes, even those that weren't included in the high-variance set.
+  - --n-iter -  number of NMF iterations to run for each K. Default: `100`
+  - --total-workers - specifies how many workers (e.g. cores on a machine or nodes on a compute farm) can be used in parallel. Default: `1`
+  - --seed - the master seed that will be used to generate the individual seed for each NMF replicate. Default: `None`
+  - --numgenes - the number of higest variance genes that will be used for running the factorization. Removing low variance genes helps amplify the signal and is an important factor in correctly inferring programs in the data. However, don't worry, at the end the spectra is re-fit to include estimates for all genes, even those that weren't included in the high-variance set. Default: 2000
+  - --beta-loss - Loss function for NMF, from one of `frobenius`, `kullback-leibler`, `itakura-saito`. Default: `frobenius`
+  - --densify -- Flag indicating that unlike most single-cell RNA-Seq data, the input data is not sparse. Causes the data to be treated as dense. Not recommended for most single-cell RNA-Seq data Default: `False`
 
 This command generates a filtered and normalized matrix for running the factorizations on. It first subsets the data down to a set of over-dispersed genes that can be provided as an input file or calculated here. While the final spectra will be computed for all of the genes in the input counts file, the factorization is much faster and can find better patterns if it only runs on a set of high-variance genes. A per-cell normalized input file may be provided as well so that the final gene expression programs can be computed with respsect to that normalization.
     
