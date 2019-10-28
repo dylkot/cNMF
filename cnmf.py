@@ -551,23 +551,6 @@ class cNMF():
             prediction_error = ((norm_counts.X.todense() - rf_pred_norm_counts)**2).sum().sum()
         else:
             prediction_error = ((norm_counts.X - rf_pred_norm_counts)**2).sum().sum()
-
-        '''
-        # Compute prediction error as a generalized KL divergence
-        EPSILON = np.finfo(np.float32).eps
-        WH_data = rf_pred_norm_counts.values.ravel()
-        X_data = norm_counts.values.ravel()
-        indices = X_data > EPSILON
-        WH_data = WH_data[indices]
-        X_data = X_data[indices]        
-        WH_data[WH_data == 0] = EPSILON
-        sum_WH = np.dot(np.sum(rf_usages, axis=0), np.sum(median_spectra, axis=1))
-        # computes np.sum(X * log(X / WH)) only where X is nonzero
-        div = X_data / WH_data
-        prediction_error = np.dot(X_data, np.log(div))
-        # add full np.sum(np.dot(W, H)) - np.sum(X)
-        prediction_error += sum_WH - X_data.sum()
-        '''
         
         consensus_stats = pd.DataFrame([k, density_threshold, stability, prediction_error],
                     index = ['k', 'local_density_threshold', 'stability', 'prediction_error'],
@@ -769,7 +752,7 @@ if __name__=="__main__":
     parser.add_argument('--genes-file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
     parser.add_argument('--numgenes', type=int, help='[prepare] Number of high variance genes to use for matrix factorization.', default=None)
     parser.add_argument('--tpm', type=str, help='[prepare] Pre-computed (cell x gene) TPM values as df.npz or tab separated txt file. If not provided TPM will be calculated automatically', default=None)
-    parser.add_argument('--beta-loss', type=str, choices=['frobenius', 'kullback-leibler', 'itakura-saito'], help='[prepare] Loss function for NMF.', default='kullback-leibler')
+    parser.add_argument('--beta-loss', type=str, choices=['frobenius', 'kullback-leibler', 'itakura-saito'], help='[prepare] Loss function for NMF.', default='frobenius')
     parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse', action='store_true', default=False)
 
     
