@@ -6,10 +6,17 @@ It takes a count matrix (N cells X G genes) as input and produces a (K x G) matr
 
 You can read more about the method in the publication [here](https://elifesciences.org/articles/43803). In addition, the analyses in that paper are available for exploration and re-execution on [Code Ocean](https://codeocean.com/2018/11/20/identifying-gene-expression-programs-of-cell-type-identity-and-cellular-activity-with-single-cell-rna-seq/code). You can read more about how to run the cNMF pipeline in this README and can it out with example data in the included [tutorial](analyze_example_data.ipynb).
 
+# Updates from version 1.0
+ - Now operates by default on sparse matrices. Use --densify option in prepare step if data is not dense
+ - Now takes Scanpy AnnData object files (.h5ad) as input
+ - Now has option to use KL divergence beta_loss instead of Frobenius
+ - Now includes a Docker file for creating a Docker container to run cNMF in parallel with cloud compute
+ - Added a tutorial on a simple PBMC dataset
+ - Other small changes
 
 # Installing cNMF
 
-We provide 2 ways to configure the dependencies for cNMR
+We provide 2 ways to configure the dependencies for cNMF
 
 <ins>Install them using conda<ins>
 
@@ -19,10 +26,10 @@ We use [conda](https://conda.io/miniconda.html) as a package management system t
 conda update -yn base conda # Make sure conda is up to date
 conda create -yn cnmf_env python=3.6
 conda activate cnmf_env
-conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 && conda clean --yes --all
+conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 pyyaml==5.1.2 scanpy==1.4.4.post1 parallel==pl5.22.0_0 && conda clean --yes --all
     
-## Only needed to load the example notework in jupyterlab but not for non-interactive runs ## 
-conda install --yes jupyterlab==1.1.4 && conda clean --yes --all
+## Only needed to load the example notebook in jupyterlab but not needed for non-interactive runs ## 
+conda install --yes jupyterlab==1.1.4 ipython==7.8.0 && conda clean --yes --all
 
 ## Only needed for the tsne in the example ##    
 pip install --upgrade --no-cache-dir --upgrade-strategy=only-if-needed bhtsne==0.1.9 #(only needed to generate the tsne in the example)
@@ -51,7 +58,11 @@ however that image isn't fully updated at present.
 
 cNMF runs NMF multiple times and combines the results of each replicates to obtain a more robust consensus estimate. Since many replicates are run, typically for many choices of K, this can be much faster if replicates are run in parallel.
 
-This cNMF code is designed to be agnostic to the method of parallelization. It can easily be distributed over nodes of a compute cluster with a scheduler such as Sun Grid Engine or distributed over cores of a single machine using [GNU parallel](https://www.gnu.org/software/parallel/). The tutorial provides example commands that illustrate how cNMF could be submitted to multiple nodes on an UGER compute cluster or how it can be run in parallel on a VM using GNU parallel.
+This cNMF code is designed to be agnostic to the method of parallelization. It divides up all of the factorization replicates into a specified number of "workers" which could correspond to cores on a computer or nodes on a compute cluster. So for example, if you are running cNMF for 5 values of K (K= 1..5) and 100 iterations each, there would be 500 total jobs. Those jobs could be divided up amongst 100 workers that would each run 5 jobs, 500 workers that would each run 1 job, or 1 worker that would run all 500 jobs.
+    
+You specify the total number of workers in the prepare command (step 1) with the --total-workers flag. Then, for step 2 you run all of the jobs for a specific worker using the --worker-index flag. Step 3 combines the results files that were output by all of the workers. The workers are indexed from 0 to (total-workers - 1).
+    
+We provide example commands in the [simulated dataset tutorial](#analyze_simulated_example_data.ipynb) and the [PBMC dataset tutorial](#analyze_pbmc_example_data.ipynb) for distributing the tasks over multiple cores on a large machine with [GNU parallel](https://www.gnu.org/software/parallel/) as well as for distributing them to multiple nodes on an UGER compute cluster. By default the simulated tutorial does not use any parallelization while the PBMC dataset does. And the simulated dataset tutorial starts from a raw text file while the PBMC dataset starts from a matrix market file (such as the ones outputted by 10X) and creates a scanpy AnnData object.
 
 # Step by step guide 
 
@@ -60,14 +71,14 @@ You can see all possible command line options by running
 python cnmf.py --help
 ```
 
-and see the [tutorial](analyze_example_data.ipynb) for a step by step walkthrough with example data. We also describe the key ideas and parameters for each step below.
+and see the [simulated dataset tutorial](#analyze_simulated_example_data.ipynb) and the [PBMC dataset tutorial](#analyze_pbmc_example_data.ipynb) for a step by step walkthrough with example data. We also describe the key ideas and parameters for each step below.
 
 ### Step 1 - normalize the input matrix and prepare the run parameters
     
 Example command:
 
 ```
-python ./cnmf.py prepare --output-dir ./example_data --name example_cNMF -c ./example_data/counts_prefiltered.txt -k 5 6 7 8 9 10 11 12 13 --n-iter 100 --total-workers 8 --seed 14 --numgenes 2000
+python ./cnmf.py prepare --output-dir ./example_data --name example_cNMF -c ./example_data/counts_prefiltered.txt -k 5 6 7 8 9 10 11 12 13 --n-iter 100 --total-workers 1 --seed 14 --numgenes 2000
 ```
 
 Path structure
@@ -89,6 +100,8 @@ Parameters
 This command generates a filtered and normalized matrix for running the factorizations on. It first subsets the data down to a set of over-dispersed genes that can be provided as an input file or calculated here. While the final spectra will be computed for all of the genes in the input counts file, the factorization is much faster and can find better patterns if it only runs on a set of high-variance genes. A per-cell normalized input file may be provided as well so that the final gene expression programs can be computed with respsect to that normalization.
     
 In addition, this command allocates specific factorization jobs to be run to distinct workers. The number of workers are specified by --total-workers, and the total number of jobs is --n-iter X the number of Ks being tested.
+    
+In the example above, we are assuming that no parallelization is to be used (--total-workers 1) and so all of the jobs are being allocated to a single worker.
 
 __Please note that the input matrix should not include any cells or genes with 0 total counts. Furthermore if any of the cells end up having 0 counts for the over-dispersed genes, that can cause an error. Please filter out cells and genes with low counts prior to running cNMF.__
 
@@ -99,8 +112,16 @@ Next NMF is run for all of the replicates specified in the previous command. The
 ```
 python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 0 
 ```
-  
-See the [tutorial](analyze_example_data.ipynb) for examples of how you could submit all of the workers to run in parallel either using [GNU parralel](https://www.gnu.org/software/parallel/) or an [UGER scheduler](http://www.univa.com/resources/files/univa_user_guide_univa__grid_engine_854.pdf). 
+
+This is running all of the jobs for worker 1. If you specified a single worker in the prepare step (--total-workers 1) this will run all of the factorizations. However, if you specified more than 1 total worker, you would need to run the commands for those workers as well with separate commands:
+
+```
+python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 1 
+python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 2
+...
+```
+    
+You should submit these commands to distinct processors so they are all run in parallel. See the [tutorial](analyze_example_data.ipynb) for examples of how you could submit all of the workers to run in parallel either using [GNU parralel](https://www.gnu.org/software/parallel/) or an [UGER scheduler](http://www.univa.com/resources/files/univa_user_guide_univa__grid_engine_854.pdf). 
     
 __Tip: The implementation of NMF in scikit-learn by default will use half of the available cores on a machine. Therefore, if you are using GNU parallel on a large machine, you should use no more than 2 workers to get the best performance.__
   
@@ -152,5 +173,3 @@ By the end of this step, you should have the following files in your directory:
    - TPM unit gene expression program  matrix - example_data/example_cNMF/example_cNMF.gene_spectra_tpm.k_10.dt_0_01.txt
    - Usage matrix example_data/example_cNMF/example_cNMF.usages.k_10.dt_0_01.consensus.txt
    - Diagnostic plot - example_data/example_cNMF/example_cNMF.clustering.k_10.dt_0_01.pdf
-    
-    
