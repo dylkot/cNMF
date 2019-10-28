@@ -23,7 +23,7 @@ RUN conda update conda -y
 # Prepare cNMF env
 RUN conda create -n cnmf_env python=3.6 -y
 RUN echo "source activate cnmf_env" > ~/.bashrc
-RUN source activate cnmf_env && conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 jupyterlab==1.1.4 ipython==7.8.0 && conda clean --yes --all
+RUN source activate cnmf_env && conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 pyyaml==5.1.2 scanpy==1.4.4.post1 parallel==pl5.22.0_0 jupyterlab==1.1.4 ipython==7.8.0 && conda clean --yes --all
 RUN pip install --upgrade --no-cache-dir --upgrade-strategy=only-if-needed bhtsne==0.1.9
 
 # Download cNMF
