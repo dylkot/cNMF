@@ -68,8 +68,8 @@ We provide example commands in the [simulated dataset tutorial](#analyze_simulat
 # Input data and Scanpy
 Input counts data can be provided to cNMF in 2 ways:
 
-    - 1. as a raw tab-delimited text file containing row labels with cell IDs (barcodes) and column labels as gene IDs
-    - 2. as a scanpy file ending in .h5ad containg counts as the data feature. See the PBMC dataset tutorial for an example of how to generate the Scanpy object from the data provided by 10X. Because Scanpy uses sparse matrices by default, the .h5ad data structure can take up much less memory than the raw counts matrix and can be much faster to load.
+1. as a raw tab-delimited text file containing row labels with cell IDs (barcodes) and column labels as gene IDs
+2. as a scanpy file ending in .h5ad containg counts as the data feature. See the PBMC dataset tutorial for an example of how to generate the Scanpy object from the data provided by 10X. Because Scanpy uses sparse matrices by default, the .h5ad data structure can take up much less memory than the raw counts matrix and can be much faster to load.
     
     
     
