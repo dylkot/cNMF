@@ -7,7 +7,7 @@ It takes a count matrix (N cells X G genes) as input and produces a (K x G) matr
 You can read more about the method in the publication [here](https://elifesciences.org/articles/43803). In addition, the analyses in that paper are available for exploration and re-execution on [Code Ocean](https://codeocean.com/2018/11/20/identifying-gene-expression-programs-of-cell-type-identity-and-cellular-activity-with-single-cell-rna-seq/code). You can read more about how to run the cNMF pipeline in this README and can test it out with example data in the included [tutorial on simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMC tutorial dataset](Tutorials/analyze_pbmc_example_data.ipynb).
 
 # Updates from version 1.0
- - Now operates by default on sparse matrices. Use --densify option in prepare step if data is not dense
+ - Now operates by default on sparse matrices. Use --densify option in prepare step if data is not sparse
  - Now takes Scanpy AnnData object files (.h5ad) as input
  - Now has option to use KL divergence beta_loss instead of Frobenius. Frobenius is the default because it is much faster.
  - Includes a Docker file for creating a Docker container to run cNMF in parallel with cloud compute
