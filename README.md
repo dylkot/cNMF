@@ -24,9 +24,8 @@ We use [conda](https://conda.io/miniconda.html) as a package management system t
 
 ```
 conda update -yn base conda # Make sure conda is up to date
-conda create -yn cnmf_env python=3.6
+conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 pyyaml==5.1.2 scanpy==1.4.4.post1 parallel && conda clean --yes --all
 conda activate cnmf_env
-conda install --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 pyyaml==5.1.2 scanpy==1.4.4.post1 parallel && conda clean --yes --all
     
 ## Only needed to load the example notebook in jupyterlab but not needed for non-interactive runs ## 
 conda install --yes jupyterlab==1.1.4 ipython==7.8.0 && conda clean --yes --all
@@ -48,11 +47,8 @@ We provide a [Dockerfile](Dockerfile) for building a Docker image that is config
 Alternatively, you can just pull the docker container from quai.io with the command
     
 ```
-docker pull quay.io/dkotliar/cnmf 
+docker pull quay.io/dkotliar/cnmf:0.2 
 ```
-    
-however that image isn't fully updated at present.
-
 
 ## Parallelizing the factorization step of cNMF
 
