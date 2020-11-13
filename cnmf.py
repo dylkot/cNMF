@@ -315,7 +315,6 @@ class cNMF():
             if np.isnan(norm_counts.X).sum().sum() > 0:
                 print('Warning NaNs in normalized counts matrix')                    
         
-        norm_counts.X = norm_counts.X.astype(np.float64)
         ## Save a \n-delimited list of the high-variance genes used for factorization
         open(self.paths['nmf_genes_list'], 'w').write('\n'.join(high_variance_genes_filter))
 
