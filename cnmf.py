@@ -314,7 +314,8 @@ class cNMF():
             norm_counts.X /= norm_counts.X.std(axis=0, ddof=1)
             if np.isnan(norm_counts.X).sum().sum() > 0:
                 print('Warning NaNs in normalized counts matrix')                    
-                    
+        
+        norm_counts.X = norm_counts.X.astype(np.float64)
         ## Save a \n-delimited list of the high-variance genes used for factorization
         open(self.paths['nmf_genes_list'], 'w').write('\n'.join(high_variance_genes_filter))
 
@@ -584,7 +585,10 @@ class cNMF():
             norm_tpm = (np.array(tpm.X.todense()) - tpm_stats['__mean'].values) / tpm_stats['__std'].values
         else:
             norm_tpm = (tpm.X - tpm_stats['__mean'].values) / tpm_stats['__std'].values
-            
+        
+        if norm_tpm.dtype != np.float64:
+            norm_tpm = norm_tpm.astype(np.float64)
+        
         usage_coef = fast_ols_all_cols(rf_usages.values, norm_tpm)
         usage_coef = pd.DataFrame(usage_coef, index=rf_usages.columns, columns=tpm.var.index)
 
@@ -844,6 +848,11 @@ if __name__=="__main__":
 
         norm_counts = cnmf_obj.get_norm_counts(input_counts, tpm, num_highvar_genes=args.numgenes,
                                                high_variance_genes_filter=highvargenes)
+        
+        
+        if norm_counts.X.dtype != np.float64:
+            norm_counts.X = norm_counts.X.astype(np.float64)
+
         cnmf_obj.save_norm_counts(norm_counts)
         (replicate_params, run_params) = cnmf_obj.get_nmf_iter_params(ks=args.components, n_iter=args.n_iter, random_state_seed=args.seed, beta_loss=args.beta_loss)
         cnmf_obj.save_nmf_iter_params(replicate_params, run_params)
