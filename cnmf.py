@@ -601,6 +601,10 @@ class cNMF():
                                     H = norm_usages.T.values,
                                 ))
         
+        # Needed otherwise _nmf will crash because with inconsistent dtypes
+        if tpm.X.dtype != np.float64:
+            tpm.X = tpm.X.astype(np.float64)
+        
         _, spectra_tpm = self._nmf(tpm.X.T, nmf_kwargs=refit_nmf_kwargs)
         spectra_tpm = pd.DataFrame(spectra_tpm.T, index=rf_usages.columns, columns=tpm.var.index)
         save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
