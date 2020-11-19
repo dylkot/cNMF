@@ -1,4 +1,4 @@
-# Consensus Non-negative Matrix factorization (cNMF) v1.1
+# Consensus Non-negative Matrix factorization (cNMF) v1.2
 
 cNMF is an analysis pipeline for inferring gene expression programs from single-cell RNA-Seq (scRNA-Seq) data.
 
@@ -13,6 +13,10 @@ You can read more about the method in the publication [here](https://elifescienc
  - Includes a Docker file for creating a Docker container to run cNMF in parallel with cloud compute
  - Includes a tutorial on a simple PBMC dataset
  - Other minor fixes
+
+# Links to previous versions of the code
+[cNMF_v1.1.zip](https://storage.googleapis.com/sabeti-public/dkotliar/cNMF/cNMF_v1.1.zip)
+[cNMF_v1.0.zip](https://storage.googleapis.com/sabeti-public/dkotliar/cNMF/cNMF_v1.0.zip)
 
 # Installing cNMF
 
