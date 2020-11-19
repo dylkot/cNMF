@@ -76,7 +76,7 @@ def var_sparse_matrix(X):
 
 
 def get_highvar_genes_sparse(expression, expected_fano_threshold=None,
-                       minimal_mean=0.01, numgenes=None):
+                       minimal_mean=0.5, numgenes=None):
     # Find high variance genes within those cells
     gene_mean = np.array(expression.mean(axis=0)).astype(float).reshape(-1)
     E2 = expression.copy(); E2.data **= 2; gene2_mean = np.array(E2.mean(axis=0)).reshape(-1)
@@ -132,7 +132,7 @@ def get_highvar_genes_sparse(expression, expected_fano_threshold=None,
 
 
 def get_highvar_genes(input_counts, expected_fano_threshold=None,
-                       minimal_mean=0.01, numgenes=None):
+                       minimal_mean=0.5, numgenes=None):
     # Find high variance genes within those cells
     gene_counts_mean = pd.Series(input_counts.mean(axis=0).astype(float))
     gene_counts_var = pd.Series(input_counts.var(ddof=0, axis=0).astype(float))
