@@ -685,6 +685,21 @@ class cNMF():
                 hist_ax.text(density_threshold  + 0.02, ylim[1] * 0.95, 'filtering\nthreshold\n\n', va='top')
             hist_ax.set_xlim(xlim)
             hist_ax.set_xlabel('Mean distance to k nearest neighbors\n\n%d/%d (%.0f%%) spectra above threshold\nwere removed prior to clustering'%(sum(~density_filter), len(density_filter), 100*(~density_filter).mean()))
+            
+            ## Add colorbar
+            cbar_gs = gridspec.GridSpecFromSubplotSpec(8, 1, subplot_spec=hist_gs[1, 0],
+                                   wspace=0, hspace=0)
+            cbar_ax = fig.add_subplot(cbar_gs[4,0], xscale='linear', yscale='linear',
+                xlabel='', ylabel='', frameon=True, title='Euclidean Distance')
+            vmin = D.min().min()
+            vmax = D.max().max()
+            fig.colorbar(dist_im, cax=cbar_ax,
+            ticks=np.linspace(vmin, vmax, 3),
+            orientation='horizontal')
+            
+            
+            #hist_ax.hist(local_density.values, bins=np.linspace(0, 1, 50))
+            #hist_ax.yaxis.tick_right()            
 
             fig.savefig(self.paths['clustering_plot']%(k, density_threshold_repl), dpi=250)
             if close_clustergram_fig:
