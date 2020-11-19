@@ -1,4 +1,4 @@
-# Consensus Non-negative Matrix factorization (cNMF) v1.2
+# Consensus Non-negative Matrix factorization (cNMF) v1.1
 
 cNMF is an analysis pipeline for inferring gene expression programs from single-cell RNA-Seq (scRNA-Seq) data.
 
