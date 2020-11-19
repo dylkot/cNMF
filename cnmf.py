@@ -377,7 +377,7 @@ class cNMF():
                         beta_loss=beta_loss,
                         solver='mu',
                         tol=1e-4,
-                        max_iter=400,
+                        max_iter=1000,
                         regularization=None,
                         init='random'
                         )
