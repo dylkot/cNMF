@@ -7,6 +7,7 @@ It takes a count matrix (N cells X G genes) as input and produces a (K x G) matr
 You can read more about the method in the publication [here](https://elifesciences.org/articles/43803). In addition, the analyses in that paper are available for exploration and re-execution on [Code Ocean](https://codeocean.com/2018/11/20/identifying-gene-expression-programs-of-cell-type-identity-and-cellular-activity-with-single-cell-rna-seq/code). You can read more about how to run the cNMF pipeline in this README and can test it out with example data in the included [tutorial on simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMC tutorial dataset](Tutorials/analyze_pbmc_example_data.ipynb).
 
 # Updates from version 1.1
+ - Increased the threshold for ignoring genes with low mean expression for determining high-variance genes from a TPM of 0.01 to 0.5. Some users were identifying uninterpretable programs with very low usage except in a tiny number of cells. We suspect that this was due to including genes as high-variance that are detected in a small number of cells. This change in the default parameter will help offset that problem in most cases.
  - Updated import of NMF for compatibility with scikit-learn versions >22
  - Colorbar for heatmaps included with consensus matrix plot
 
@@ -28,18 +29,16 @@ We provide 2 ways to configure the dependencies for cNMF
 
 <ins>Install them using conda<ins>
 
-We use [conda](https://conda.io/miniconda.html) as a package management system to install the necessary python packages. After installing and configuring conda, you can create an environment for the cNMF workflow as follows
+We use [conda](https://conda.io/miniconda.html) as a package management system to install the necessary python packages. After installing and configuring conda, you can create an environment for the cNMF workflow using the commands below. These commands install the exact versions of each package that we used for testing and that generated the results in the tutorial notebooks.
 
 ```
-conda update -yn base conda # Make sure conda is up to date
-conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults fastcluster==1.1.25 matplotlib==3.1.1 numpy==1.17.3 palettable==3.3.0 pandas==0.25.2 scipy==1.3.1 scikit-learn==0.21.3 cython==0.29.13 pyyaml==5.1.2 scanpy==1.4.4.post1 parallel && conda clean --yes --all
+# Make sure conda is up to date
+conda update -yn base conda
+conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults python==3.7 fastcluster==1.1.26 matplotlib==3.3.2 numpy==1.19.2 palettable==3.3.0 pandas==1.1.3 scipy==1.5.2 scikit-learn==0.23.2 pyyaml==5.3.1 scanpy==1.6.0 parallel && conda clean --yes --all
 conda activate cnmf_env
     
 ## Only needed to load the example notebook in jupyterlab but not needed for non-interactive runs ## 
-conda install --yes jupyterlab==1.1.4 ipython==7.8.0 && conda clean --yes --all
-
-## Only needed for the tsne in the example ##    
-pip install --upgrade --no-cache-dir --upgrade-strategy=only-if-needed bhtsne==0.1.9 #(only needed to generate the tsne in the example)
+conda install --yes jupyterlab==2.2.9 && conda clean --yes --all
 ```
 
 Then you need to activate the cnmf_env conda environment each time before running cNMF. With the command below.
