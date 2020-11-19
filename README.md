@@ -1,10 +1,13 @@
-# Consensus Non-negative Matrix factorization (cNMF) v1.1
+# Consensus Non-negative Matrix factorization (cNMF) v1.2
 
 cNMF is an analysis pipeline for inferring gene expression programs from single-cell RNA-Seq (scRNA-Seq) data.
 
 It takes a count matrix (N cells X G genes) as input and produces a (K x G) matrix of gene expression programs (GEPs) and a (N x K) matrix specifying the usage of each program for each cell in the data.
 
 You can read more about the method in the publication [here](https://elifesciences.org/articles/43803). In addition, the analyses in that paper are available for exploration and re-execution on [Code Ocean](https://codeocean.com/2018/11/20/identifying-gene-expression-programs-of-cell-type-identity-and-cellular-activity-with-single-cell-rna-seq/code). You can read more about how to run the cNMF pipeline in this README and can test it out with example data in the included [tutorial on simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMC tutorial dataset](Tutorials/analyze_pbmc_example_data.ipynb).
+
+# Updates from version 1.1
+ - Colorbar for heatmaps included with consensus matrix plot
 
 # Updates from version 1.0
  - Now operates by default on sparse matrices. Use --densify option in prepare step if data is not sparse
@@ -15,8 +18,8 @@ You can read more about the method in the publication [here](https://elifescienc
  - Other minor fixes
 
 # Links to previous versions of the code
-[cNMF_v1.1.zip](https://storage.googleapis.com/sabeti-public/dkotliar/cNMF/cNMF_v1.1.zip)
-[cNMF_v1.0.zip](https://storage.googleapis.com/sabeti-public/dkotliar/cNMF/cNMF_v1.0.zip)
+- [cNMF_v1.1.zip](https://storage.googleapis.com/sabeti-public/dkotliar/cNMF/cNMF_v1.1.zip)
+- [cNMF_v1.0.zip](https://storage.googleapis.com/sabeti-public/dkotliar/cNMF/cNMF_v1.0.zip)
 
 # Installing cNMF
 
