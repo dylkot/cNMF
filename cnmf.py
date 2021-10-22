@@ -322,7 +322,7 @@ class cNMF():
             tpm = compute_tpm(input_counts)
             sc.write(cnmf_obj.paths['tpm'], tpm)
         elif tpm_fn.endswith('.h5ad'):
-            subprocess.call('cp %s %s' % (tpm_fn, cnmf_obj.paths['tpm']), shell=True)
+            subprocess.call('cp %s %s' % (tpm_fn, self.paths['tpm']), shell=True)
             tpm = sc.read(cnmf_obj.paths['tpm'])
         else:
             if tpm_fn.endswith('.npz'):
