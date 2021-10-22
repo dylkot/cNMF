@@ -258,8 +258,44 @@ class cNMF():
             }
 
 
-    def prepare(self, counts_fn, components, n_iter, densify=False, tpm_fn=None, seed=None,
+    def prepare(self, counts_fn, components, n_iter = 100, densify=False, tpm_fn=None, seed=None,
                          beta_loss='frobenius',num_highvar_genes=2000, genes_file=None):
+        """
+        Load input counts, reduce to high-variance genes, and variance normalize genes.
+        Subsequently prepare file for distributing jobs over workers.
+
+
+        Parameters
+        ----------
+        counts_fn : str
+            Path to input counts matrix
+
+        components : list or numpy array
+            Values of K to run NMF for
+            
+        n_iter : integer, optional (defailt=100)
+            Number of iterations for factorization. If several ``k`` are specified, this many
+            iterations will be run for each value of ``k``.
+
+        densify : boolean, optional (default=False)
+            Convert sparse data to dense
+
+        tpm_fn : str or None, optional (default=None)
+            If provided, load tpm data from file. Otherwise will compute it from the counts file
+            
+        seed : int or None, optional (default=None)
+            Seed for sklearn random state.
+            
+        beta_loss : str or None, optional (default='frobenius')
+
+        num_highvar_genes : int or None, optional (default=2000)
+            If provided and genes_file is None, will compute this many highvar genes to use for factorization
+        
+        genes_file : str or None, optional (default=None)
+            If provided will load high-variance genes from a list of these genes
+        """
+        
+        
         if counts_fn.endswith('.h5ad'):
             input_counts = sc.read(counts_fn)
         else:
