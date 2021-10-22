@@ -353,7 +353,7 @@ class cNMF():
              index = ['__mean', '__std']).T
         save_df_to_npz(input_tpm_stats, self.paths['tpm_stats'])
         
-        if agenes_file is not None:
+        if genes_file is not None:
             highvargenes = open(genes_file).read().rstrip().split('\n')
         else:
             highvargenes = None
