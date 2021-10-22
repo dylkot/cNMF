@@ -351,7 +351,7 @@ class cNMF():
             
         input_tpm_stats = pd.DataFrame([gene_tpm_mean, gene_tpm_stddev],
              index = ['__mean', '__std']).T
-        save_df_to_npz(input_tpm_stats, cnmf_obj.paths['tpm_stats'])
+        save_df_to_npz(input_tpm_stats, self.paths['tpm_stats'])
         
         if agenes_file is not None:
             highvargenes = open(genes_file).read().rstrip().split('\n')
