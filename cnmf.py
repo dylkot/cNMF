@@ -323,7 +323,7 @@ class cNMF():
             sc.write(cnmf_obj.paths['tpm'], tpm)
         elif tpm_fn.endswith('.h5ad'):
             subprocess.call('cp %s %s' % (tpm_fn, self.paths['tpm']), shell=True)
-            tpm = sc.read(cnmf_obj.paths['tpm'])
+            tpm = sc.read(self.paths['tpm'])
         else:
             if tpm_fn.endswith('.npz'):
                 tpm = load_df_from_npz(tpm_fn)
@@ -358,7 +358,7 @@ class cNMF():
         else:
             highvargenes = None
 
-        norm_counts = self.get_norm_counts(input_counts, tpm, num_highvar_genes=args.numgenes,
+        norm_counts = self.get_norm_counts(input_counts, tpm, num_highvar_genes=num_highvar_genes,
                                                high_variance_genes_filter=highvargenes)
         
         
