@@ -490,7 +490,8 @@ class cNMF():
         replicate_params = pd.DataFrame(replicate_params, columns = ['n_components', 'iter', 'nmf_seed'])
 
         _nmf_kwargs = dict(
-                        alpha=0.0,
+                        alpha_W=0.0,
+                        alpha_H='same'
                         l1_ratio=0.0,
                         beta_loss=beta_loss,
                         solver='mu',
