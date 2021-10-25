@@ -370,8 +370,18 @@ class cNMF():
         self.save_nmf_iter_params(replicate_params, run_params)
         
     
-    
-    
+    def combine(self, components=None):
+        run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
+
+        if type(components) is int:
+            ks = [components]
+        elif components is None:
+            ks = sorted(set(run_params.n_components))
+        else:
+            ks = components
+
+        for k in ks:
+            self.combine_nmf(k)    
     
     
     
@@ -491,7 +501,7 @@ class cNMF():
 
         _nmf_kwargs = dict(
                         alpha_W=0.0,
-                        alpha_H='same'
+                        alpha_H='same',
                         l1_ratio=0.0,
                         beta_loss=beta_loss,
                         solver='mu',
@@ -926,17 +936,7 @@ if __name__=="__main__":
         cnmf_obj.run_nmf(worker_i=args.worker_index, total_workers=args.total_workers)
 
     elif args.command == 'combine':
-        run_params = load_df_from_npz(cnmf_obj.paths['nmf_replicate_parameters'])
-
-        if type(args.components) is int:
-            ks = [args.components]
-        elif args.components is None:
-            ks = sorted(set(run_params.n_components))
-        else:
-            ks = args.components
-
-        for k in ks:
-            cnmf_obj.combine_nmf(k)
+        cnmf_obj.combine(self, components=args.components)
 
     elif args.command == 'consensus':
         run_params = load_df_from_npz(cnmf_obj.paths['nmf_replicate_parameters'])
