@@ -928,7 +928,7 @@ if __name__=="__main__":
     cnmf_obj = cNMF(output_dir=args.output_dir, name=args.name)
     
     if args.command == 'prepare':
-        cnmf_obj.prepare(self, args.counts, components=args.components, n_iter=args.n_iter, densify=args.densify,
+        cnmf_obj.prepare(args.counts, components=args.components, n_iter=args.n_iter, densify=args.densify,
                          tpm_fn=args.tpm, random_state_seed=args.seed, beta_loss=args.beta_loss,
                          num_highvar_genes=args.num_highvar_genes, genes_file=args.genes_file)
 
@@ -936,7 +936,7 @@ if __name__=="__main__":
         cnmf_obj.run_nmf(worker_i=args.worker_index, total_workers=args.total_workers)
 
     elif args.command == 'combine':
-        cnmf_obj.combine(self, components=args.components)
+        cnmf_obj.combine(components=args.components)
 
     elif args.command == 'consensus':
         run_params = load_df_from_npz(cnmf_obj.paths['nmf_replicate_parameters'])
