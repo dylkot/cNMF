@@ -320,7 +320,7 @@ class cNMF():
  
         if tpm_fn is None:
             tpm = compute_tpm(input_counts)
-            sc.write(cnmf_obj.paths['tpm'], tpm)
+            sc.write(self.paths['tpm'], tpm)
         elif tpm_fn.endswith('.h5ad'):
             subprocess.call('cp %s %s' % (tpm_fn, self.paths['tpm']), shell=True)
             tpm = sc.read(self.paths['tpm'])
@@ -339,7 +339,7 @@ class cNMF():
                             obs=pd.DataFrame(index=tpm.index),
                             var=pd.DataFrame(index=tpm.columns)) 
 
-            sc.write(cnmf_obj.paths['tpm'], tpm)
+            sc.write(self.paths['tpm'], tpm)
         
         if sp.issparse(tpm.X):
             gene_tpm_mean = np.array(tpm.X.mean(axis=0)).reshape(-1)
@@ -929,8 +929,8 @@ if __name__=="__main__":
     
     if args.command == 'prepare':
         cnmf_obj.prepare(args.counts, components=args.components, n_iter=args.n_iter, densify=args.densify,
-                         tpm_fn=args.tpm, random_state_seed=args.seed, beta_loss=args.beta_loss,
-                         num_highvar_genes=args.num_highvar_genes, genes_file=args.genes_file)
+                         tpm_fn=args.tpm, seed=args.seed, beta_loss=args.beta_loss,
+                         num_highvar_genes=args.numgenes, genes_file=args.genes_file)
 
     elif args.command == 'factorize':
         cnmf_obj.run_nmf(worker_i=args.worker_index, total_workers=args.total_workers)
