@@ -542,7 +542,7 @@ class cNMF():
         return(spectra, usages)
 
 
-    def run_nmf(self,
+    def factorize(self,
                 worker_i=1, total_workers=1,
                 ):
         """
@@ -575,7 +575,6 @@ class cNMF():
             (Output of ``prepare_nmf_iter_params``)
 
         """
-        self._initialize_dirs()
         run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         norm_counts = sc.read(self.paths['normalized_counts'])
         _nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
@@ -598,8 +597,6 @@ class cNMF():
     def combine_nmf(self, k, remove_individual_iterations=False):
         run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         print('Combining factorizations for k=%d.'%k)
-
-        self._initialize_dirs()
 
         combined_spectra = None
         n_iter = sum(run_params.n_components==k)
@@ -930,7 +927,7 @@ def main():
                          num_highvar_genes=args.numgenes, genes_file=args.genes_file)
 
     elif args.command == 'factorize':
-        cnmf_obj.run_nmf(worker_i=args.worker_index, total_workers=args.total_workers)
+        cnmf_obj.factorize(worker_i=args.worker_index, total_workers=args.total_workers)
 
     elif args.command == 'combine':
         cnmf_obj.combine(components=args.components)
