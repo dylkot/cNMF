@@ -621,15 +621,15 @@ class cNMF():
         return combined_spectra
 
 
-    def consensus(self, k, density_threshold_str='0.5', local_neighborhood_size = 0.30,show_clustering = False,
+    def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = False,
                   skip_density_and_return_after_stats = False, close_clustergram_fig=True):
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         norm_counts = sc.read(self.paths['normalized_counts'])
 
+        density_threshold_str = str(density_threshold)
         if skip_density_and_return_after_stats:
             density_threshold_str = '2'
         density_threshold_repl = density_threshold_str.replace('.', '_')
-        density_threshold = float(density_threshold_str)
         n_neighbors = int(local_neighborhood_size * merged_spectra.shape[0]/k)
 
         # Rescale topics such to length of 1.
@@ -913,7 +913,7 @@ def main():
     parser.add_argument('--beta-loss', type=str, choices=['frobenius', 'kullback-leibler', 'itakura-saito'], help='[prepare] Loss function for NMF.', default='frobenius')
     parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse', action='store_true', default=False) 
     parser.add_argument('--worker-index', type=int, help='[factorize] Index of current worker (the first worker should have index 0)', default=0)
-    parser.add_argument('--local-density-threshold', type=str, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default='0.5')
+    parser.add_argument('--local-density-threshold', type=float, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default=0.5)
     parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Fraction of the number of replicates to use as nearest neighbors for local density filtering', default=0.30)
     parser.add_argument('--show-clustering', dest='show_clustering', help='[consensus] Produce a clustergram figure summarizing the spectra clustering', action='store_true')
 
