@@ -92,7 +92,7 @@ and see the [simulated dataset tutorial](Tutorials/analyze_simulated_example_dat
 Example command:
 
 ```
-python ./cnmf.py prepare --output-dir ./example_data --name example_cNMF -c ./example_data/counts_prefiltered.txt -k 5 6 7 8 9 10 11 12 13 --n-iter 100 --total-workers 1 --seed 14 --numgenes 2000
+python ./cnmf.py prepare --output-dir ./example_data --name example_cNMF -c ./example_data/counts_prefiltered.txt -k 5 6 7 8 9 10 11 12 13 --n-iter 100 --seed 14 --numgenes 2000
 ```
 
 Path structure
@@ -132,8 +132,9 @@ python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --wor
 This is running all of the jobs for worker 1. If you specified a single worker in the prepare step (--total-workers 1) like in the command above, this will run all of the factorizations. However, if you specified more than 1 total worker, you would need to run the commands for those workers as well with separate commands, E.g.:
 
 ```
-python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 1 
-python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 2
+python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 0 --total-workers 3
+python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 1 --total-workers 3
+python ./cnmf.py factorize --output-dir ./example_data --name example_cNMF --worker-index 2 --total-workers 3
 ...
 ```
     
