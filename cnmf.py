@@ -216,7 +216,6 @@ class cNMF():
             name = '%s_%s' % (now.strftime("%Y_%m_%d"), rand_hash)
         self.name = name
         self.paths = None
-        self._initialize_dirs()
 
 
     def _initialize_dirs(self):
@@ -258,133 +257,6 @@ class cNMF():
             }
 
 
-    def prepare(self, counts_fn, components, n_iter = 100, densify=False, tpm_fn=None, seed=None,
-                         beta_loss='frobenius',num_highvar_genes=2000, genes_file=None):
-        """
-        Load input counts, reduce to high-variance genes, and variance normalize genes.
-        Subsequently prepare file for distributing jobs over workers.
-
-
-        Parameters
-        ----------
-        counts_fn : str
-            Path to input counts matrix
-
-        components : list or numpy array
-            Values of K to run NMF for
-            
-        n_iter : integer, optional (defailt=100)
-            Number of iterations for factorization. If several ``k`` are specified, this many
-            iterations will be run for each value of ``k``.
-
-        densify : boolean, optional (default=False)
-            Convert sparse data to dense
-
-        tpm_fn : str or None, optional (default=None)
-            If provided, load tpm data from file. Otherwise will compute it from the counts file
-            
-        seed : int or None, optional (default=None)
-            Seed for sklearn random state.
-            
-        beta_loss : str or None, optional (default='frobenius')
-
-        num_highvar_genes : int or None, optional (default=2000)
-            If provided and genes_file is None, will compute this many highvar genes to use for factorization
-        
-        genes_file : str or None, optional (default=None)
-            If provided will load high-variance genes from a list of these genes
-        """
-        
-        
-        if counts_fn.endswith('.h5ad'):
-            input_counts = sc.read(counts_fn)
-        else:
-            ## Load txt or compressed dataframe and convert to scanpy object
-            if counts_fn.endswith('.npz'):
-                input_counts = load_df_from_npz(counts_fn)
-            else:
-                input_counts = pd.read_csv(counts_fn, sep='\t', index_col=0)
-                
-            if densify:
-                input_counts = sc.AnnData(X=input_counts.values,
-                                       obs=pd.DataFrame(index=input_counts.index),
-                                       var=pd.DataFrame(index=input_counts.columns))
-            else:
-                input_counts = sc.AnnData(X=sp.csr_matrix(input_counts.values),
-                                       obs=pd.DataFrame(index=input_counts.index),
-                                       var=pd.DataFrame(index=input_counts.columns))
-
-                
-        if sp.issparse(input_counts.X) & densify:
-            input_counts.X = np.array(input_counts.X.todense())
- 
-        if tpm_fn is None:
-            tpm = compute_tpm(input_counts)
-            sc.write(self.paths['tpm'], tpm)
-        elif tpm_fn.endswith('.h5ad'):
-            subprocess.call('cp %s %s' % (tpm_fn, self.paths['tpm']), shell=True)
-            tpm = sc.read(self.paths['tpm'])
-        else:
-            if tpm_fn.endswith('.npz'):
-                tpm = load_df_from_npz(tpm_fn)
-            else:
-                tpm = pd.read_csv(tpm_fn, sep='\t', index_col=0)
-            
-            if densify:
-                tpm = sc.AnnData(X=tpm.values,
-                            obs=pd.DataFrame(index=tpm.index),
-                            var=pd.DataFrame(index=tpm.columns)) 
-            else:
-                tpm = sc.AnnData(X=sp.csr_matrix(tpm.values),
-                            obs=pd.DataFrame(index=tpm.index),
-                            var=pd.DataFrame(index=tpm.columns)) 
-
-            sc.write(self.paths['tpm'], tpm)
-        
-        if sp.issparse(tpm.X):
-            gene_tpm_mean = np.array(tpm.X.mean(axis=0)).reshape(-1)
-            gene_tpm_stddev = var_sparse_matrix(tpm.X)**.5
-        else:
-            gene_tpm_mean = np.array(tpm.X.mean(axis=0)).reshape(-1)
-            gene_tpm_stddev = np.array(tpm.X.std(axis=0, ddof=0)).reshape(-1)
-            
-            
-        input_tpm_stats = pd.DataFrame([gene_tpm_mean, gene_tpm_stddev],
-             index = ['__mean', '__std']).T
-        save_df_to_npz(input_tpm_stats, self.paths['tpm_stats'])
-        
-        if genes_file is not None:
-            highvargenes = open(genes_file).read().rstrip().split('\n')
-        else:
-            highvargenes = None
-
-        norm_counts = self.get_norm_counts(input_counts, tpm, num_highvar_genes=num_highvar_genes,
-                                               high_variance_genes_filter=highvargenes)
-        
-        
-        if norm_counts.X.dtype != np.float64:
-            norm_counts.X = norm_counts.X.astype(np.float64)
-
-        self.save_norm_counts(norm_counts)
-        (replicate_params, run_params) = self.get_nmf_iter_params(ks=components, n_iter=n_iter, random_state_seed=seed, beta_loss=beta_loss)
-        self.save_nmf_iter_params(replicate_params, run_params)
-        
-    
-    def combine(self, components=None):
-        run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
-
-        if type(components) is int:
-            ks = [components]
-        elif components is None:
-            ks = sorted(set(run_params.n_components))
-        else:
-            ks = components
-
-        for k in ks:
-            self.combine_nmf(k)    
-    
-    
-    
     def get_norm_counts(self, counts, tpm,
                          high_variance_genes_filter = None,
                          num_highvar_genes = None
@@ -500,13 +372,13 @@ class cNMF():
         replicate_params = pd.DataFrame(replicate_params, columns = ['n_components', 'iter', 'nmf_seed'])
 
         _nmf_kwargs = dict(
-                        alpha_W=0.0,
-                        alpha_H='same',
+                        alpha=0.0,
                         l1_ratio=0.0,
                         beta_loss=beta_loss,
                         solver='mu',
                         tol=1e-4,
                         max_iter=1000,
+                        regularization=None,
                         init='random'
                         )
         
@@ -926,17 +798,99 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     cnmf_obj = cNMF(output_dir=args.output_dir, name=args.name)
+    cnmf_obj._initialize_dirs()
     
     if args.command == 'prepare':
-        cnmf_obj.prepare(args.counts, components=args.components, n_iter=args.n_iter, densify=args.densify,
-                         tpm_fn=args.tpm, seed=args.seed, beta_loss=args.beta_loss,
-                         num_highvar_genes=args.numgenes, genes_file=args.genes_file)
+
+        if args.counts.endswith('.h5ad'):
+            input_counts = sc.read(args.counts)
+        else:
+            ## Load txt or compressed dataframe and convert to scanpy object
+            if args.counts.endswith('.npz'):
+                input_counts = load_df_from_npz(args.counts)
+            else:
+                input_counts = pd.read_csv(args.counts, sep='\t', index_col=0)
+                
+            if args.densify:
+                input_counts = sc.AnnData(X=input_counts.values,
+                                       obs=pd.DataFrame(index=input_counts.index),
+                                       var=pd.DataFrame(index=input_counts.columns))
+            else:
+                input_counts = sc.AnnData(X=sp.csr_matrix(input_counts.values),
+                                       obs=pd.DataFrame(index=input_counts.index),
+                                       var=pd.DataFrame(index=input_counts.columns))
+
+                
+        if sp.issparse(input_counts.X) & args.densify:
+            input_counts.X = np.array(input_counts.X.todense())
+ 
+        if args.tpm is None:
+            tpm = compute_tpm(input_counts)
+            sc.write(cnmf_obj.paths['tpm'], tpm)
+        elif args.tpm.endswith('.h5ad'):
+            subprocess.call('cp %s %s' % (args.tpm, cnmf_obj.paths['tpm']), shell=True)
+            tpm = sc.read(cnmf_obj.paths['tpm'])
+        else:
+            if args.tpm.endswith('.npz'):
+                tpm = load_df_from_npz(args.tpm)
+            else:
+                tpm = pd.read_csv(args.tpm, sep='\t', index_col=0)
+            
+            if args.densify:
+                tpm = sc.AnnData(X=tpm.values,
+                            obs=pd.DataFrame(index=tpm.index),
+                            var=pd.DataFrame(index=tpm.columns)) 
+            else:
+                tpm = sc.AnnData(X=sp.csr_matrix(tpm.values),
+                            obs=pd.DataFrame(index=tpm.index),
+                            var=pd.DataFrame(index=tpm.columns)) 
+
+            sc.write(cnmf_obj.paths['tpm'], tpm)
+        
+        if sp.issparse(tpm.X):
+            gene_tpm_mean = np.array(tpm.X.mean(axis=0)).reshape(-1)
+            gene_tpm_stddev = var_sparse_matrix(tpm.X)**.5
+        else:
+            gene_tpm_mean = np.array(tpm.X.mean(axis=0)).reshape(-1)
+            gene_tpm_stddev = np.array(tpm.X.std(axis=0, ddof=0)).reshape(-1)
+            
+            
+        input_tpm_stats = pd.DataFrame([gene_tpm_mean, gene_tpm_stddev],
+             index = ['__mean', '__std']).T
+        save_df_to_npz(input_tpm_stats, cnmf_obj.paths['tpm_stats'])
+        
+        if args.genes_file is not None:
+            highvargenes = open(args.genes_file).read().rstrip().split('\n')
+        else:
+            highvargenes = None
+
+        norm_counts = cnmf_obj.get_norm_counts(input_counts, tpm, num_highvar_genes=args.numgenes,
+                                               high_variance_genes_filter=highvargenes)
+        
+        
+        if norm_counts.X.dtype != np.float64:
+            norm_counts.X = norm_counts.X.astype(np.float64)
+
+        cnmf_obj.save_norm_counts(norm_counts)
+        (replicate_params, run_params) = cnmf_obj.get_nmf_iter_params(ks=args.components, n_iter=args.n_iter, random_state_seed=args.seed, beta_loss=args.beta_loss)
+        cnmf_obj.save_nmf_iter_params(replicate_params, run_params)
+
 
     elif args.command == 'factorize':
         cnmf_obj.run_nmf(worker_i=args.worker_index, total_workers=args.total_workers)
 
     elif args.command == 'combine':
-        cnmf_obj.combine(components=args.components)
+        run_params = load_df_from_npz(cnmf_obj.paths['nmf_replicate_parameters'])
+
+        if type(args.components) is int:
+            ks = [args.components]
+        elif args.components is None:
+            ks = sorted(set(run_params.n_components))
+        else:
+            ks = args.components
+
+        for k in ks:
+            cnmf_obj.combine_nmf(k)
 
     elif args.command == 'consensus':
         run_params = load_df_from_npz(cnmf_obj.paths['nmf_replicate_parameters'])
