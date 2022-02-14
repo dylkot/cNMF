@@ -10,13 +10,11 @@ import yaml
 import subprocess
 import scipy.sparse as sp
 
-
 from scipy.spatial.distance import squareform
 from sklearn.decomposition import non_negative_factorization
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.utils import sparsefuncs
-
 
 from fastcluster import linkage
 from scipy.cluster.hierarchy import leaves_list
