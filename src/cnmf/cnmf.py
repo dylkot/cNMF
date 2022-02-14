@@ -112,11 +112,11 @@ def get_highvar_genes_sparse(expression, expected_fano_threshold=None,
 
     else:
         if not expected_fano_threshold:
-            T = (1. + gene_counts_fano[winsor_box].std())
+            T = (1. + gene_fano[winsor_box].std())
         else:
             T = expected_fano_threshold
 
-        high_var_genes_ind = (fano_ratio > T) & (gene_counts_mean > minimal_mean)
+        high_var_genes_ind = (fano_ratio > T) & (gene_mean > minimal_mean)
 
     gene_counts_stats = pd.DataFrame({
         'mean': gene_mean,
