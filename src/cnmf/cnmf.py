@@ -541,7 +541,7 @@ class cNMF():
 
 
     def factorize(self,
-                worker_i=1, total_workers=1,
+                worker_i=0, total_workers=1,
                 ):
         """
         Iteratively run NMF with prespecified parameters.
@@ -831,7 +831,7 @@ class cNMF():
                 plt.close(fig)
 
 
-    def k_selection_plot(self, close_fig=True):
+    def k_selection_plot(self, close_fig=False):
         '''
         Borrowed from Alexandrov Et Al. 2013 Deciphering Mutational Signatures
         publication in Cell Reports
@@ -945,7 +945,7 @@ def main():
             cnmf_obj.consensus(k, args.local_density_threshold, args.local_neighborhood_size, args.show_clustering)
 
     elif args.command == 'k_selection_plot':
-        cnmf_obj.k_selection_plot()
+        cnmf_obj.k_selection_plot(close_fig=True)
 
 
 if __name__=="__main__":
