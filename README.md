@@ -11,7 +11,7 @@ We recommend creating a [conda](https://conda.io/miniconda.html) environment to 
 
 ```
 conda update -yn base conda # Make sure conda is up to date
-conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults python==3.7 fastcluster matplotlib numpy palettable pandas scipy scikit-learn>=1.0 pyyaml scanpy==1.6.0 parallel && conda clean --yes --all # Create cnmf_env containing necessary packages
+conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults python==3.7 fastcluster matplotlib numpy palettable pandas scipy scikit-learn>=1.0 pyyaml scanpy>=1.8 && conda clean --yes --all # Create cnmf_env containing necessary packages
 conda activate cnmf_env # Activate cnmf_env - necessary before running cnmf
 pip install cnmf # install the actual cnmf package
     
