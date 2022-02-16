@@ -619,7 +619,7 @@ class cNMF():
         return combined_spectra
 
 
-    def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = False,
+    def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = True,
                   skip_density_and_return_after_stats = False, close_clustergram_fig=False):
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         norm_counts = sc.read(self.paths['normalized_counts'])
@@ -840,7 +840,8 @@ class cNMF():
         stats = []
         for k in sorted(set(run_params.n_components)):
 
-            stats.append(self.consensus(k, skip_density_and_return_after_stats=True, show_clustering=False).stats)
+            stats.append(self.consensus(k, skip_density_and_return_after_stats=True,
+                                        show_clustering=False, close_clustergram_fig=True).stats)
 
         stats = pd.DataFrame(stats)
         stats.reset_index(drop = True, inplace = True)
@@ -942,7 +943,8 @@ def main():
 
         for k in ks:
             merged_spectra = load_df_from_npz(cnmf_obj.paths['merged_spectra']%k)
-            cnmf_obj.consensus(k, args.local_density_threshold, args.local_neighborhood_size, args.show_clustering)
+            cnmf_obj.consensus(k, args.local_density_threshold, args.local_neighborhood_size, args.show_clustering,
+                               close_clustergram_fig=True)
 
     elif args.command == 'k_selection_plot':
         cnmf_obj.k_selection_plot(close_fig=True)

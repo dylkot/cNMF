@@ -1,1 +1,1 @@
-from .cnmf import main
+from .cnmf import main, cNMF
