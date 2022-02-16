@@ -11,7 +11,7 @@ We recommend creating a [conda](https://conda.io/miniconda.html) environment to 
 
 ```
 conda update -yn base conda # Make sure conda is up to date
-conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults python==3.7 fastcluster matplotlib numpy palettable pandas scipy scikit-learn>=1.0 pyyaml scanpy>=1.8 && conda clean --yes --all # Create cnmf_env containing necessary packages
+conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults python==3.7 fastcluster matplotlib numpy palettable pandas scipy scikit-learn==1.02 pyyaml scanpy==1.8 && conda clean --yes --all # Create environment, cnmf_env, containing required packages
 conda activate cnmf_env # Activate cnmf_env - necessary before running cnmf
 pip install cnmf # install the actual cnmf package
     
@@ -20,6 +20,12 @@ conda install --yes jupyterlab && conda clean --yes --all
 ```
 
 Now you can run cNMF as long as the cnmv_enf environment is activated with the `conda activate cnmf_env` command
+
+Alternatively, if you already have all of the required packages installed, you can just run:
+
+```
+pip install cnmf
+```
 
 # Running cNMF
 
