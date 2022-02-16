@@ -620,7 +620,7 @@ class cNMF():
 
 
     def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = False,
-                  skip_density_and_return_after_stats = False, close_clustergram_fig=True):
+                  skip_density_and_return_after_stats = False, close_clustergram_fig=False):
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         norm_counts = sc.read(self.paths['normalized_counts'])
 
@@ -840,7 +840,7 @@ class cNMF():
         stats = []
         for k in sorted(set(run_params.n_components)):
 
-            stats.append(self.consensus(k, skip_density_and_return_after_stats=True).stats)
+            stats.append(self.consensus(k, skip_density_and_return_after_stats=True, show_clustering=False).stats)
 
         stats = pd.DataFrame(stats)
         stats.reset_index(drop = True, inplace = True)
