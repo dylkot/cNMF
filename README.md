@@ -27,6 +27,8 @@ Alternatively, if you already have all of the required packages installed, you c
 pip install cnmf
 ```
 
+but note the requirement for scikit-learn version beyond 1.0 and scanpy.
+
 # Running cNMF
 
 cNMF can be run from the command line without any parallelization using the example commands below:
