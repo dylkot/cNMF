@@ -17,17 +17,9 @@ build:
 
 requirements:
   host:
-    - fastcluster
-    - matplotlib
-    - numpy
-    - palettable
-    - pandas
     - pip
     - python
-    - pyyaml
-    - scanpy
-    - scikit-learn >=1.0
-    - scipy
+    - setuptools
   run:
     - fastcluster
     - matplotlib
@@ -50,10 +42,7 @@ about:
   home: "https://github.com/dylkot/cNMF"
   license: MIT
   license_family: MIT
-  license_file: 
   summary: "Consensus NMF for scRNA-Seq data"
-  doc_url: 
-  dev_url: 
 
 extra:
   recipe-maintainers:
