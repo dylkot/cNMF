@@ -669,7 +669,7 @@ class cNMF():
         # Compute the silhouette score
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
-        # Obtain the reconstructed count matrix by re-fitting the usage matrix and computing the dot product: usage.dot(spectra)
+        # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
         refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
         refit_nmf_kwargs.update(dict(
                                     n_components = k,
@@ -778,8 +778,8 @@ class cNMF():
                                       frameon=True)
 
             D = topics_dist[spectra_order, :][:, spectra_order]
-            dist_im = dist_ax.imshow(D, interpolation='none', cmap='viridis', aspect='auto',
-                                rasterized=True)
+            dist_im = dist_ax.imshow(D, interpolation='none', cmap='viridis',
+                                     aspect='auto', rasterized=True)
 
             left_ax = fig.add_subplot(gs[1,0], xscale='linear', yscale='linear', xticks=[], yticks=[],
                 xlabel='', ylabel='', frameon=True)

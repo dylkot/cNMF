@@ -174,7 +174,7 @@ In practice, we tend to run this command twice, once with --local-density-thresh
 
 Example command:
 ```
-cnmf consensus --output-dir ./example_data --name example_cNMF --components 10 --local-density-threshold 0.25 --show-clustering
+cnmf consensus --output-dir ./example_data --name example_cNMF --components 10 --local-density-threshold 0.2 --show-clustering
 ```
   - --components - value of K to compute consensus clusters for. Must be among the options provided to the prepare step
   - --local-density-threshold - the threshold on average distance to K nearest neighbors to use. 2.0 or above means that nothing will be filtered out. Default: 0.5
