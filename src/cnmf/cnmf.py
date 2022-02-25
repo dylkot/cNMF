@@ -14,6 +14,7 @@ from scipy.spatial.distance import squareform
 from sklearn.decomposition import non_negative_factorization
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.utils import sparsefuncs
 
 from fastcluster import linkage
@@ -46,16 +47,6 @@ def check_dir_exists(path):
 
 def worker_filter(iterable, worker_index, total_workers):
     return (p for i,p in enumerate(iterable) if (i-worker_index)%total_workers==0)
-
-def fast_euclidean(mat):
-    D = mat.dot(mat.T)
-    squared_norms = np.diag(D).copy()
-    D *= -2.0
-    D += squared_norms.reshape((-1,1))
-    D += squared_norms.reshape((1,-1))
-    D = np.sqrt(D)
-    D[D < 0] = 0
-    return squareform(D, checks=False)
 
 def fast_ols_all_cols(X, Y):
     pinv = np.linalg.pinv(X)
@@ -641,7 +632,7 @@ class cNMF():
                 local_density = load_df_from_npz(self.paths['local_density_cache'] % k)
             else:
                 #   first find the full distance matrix
-                topics_dist = squareform(fast_euclidean(l2_spectra.values))
+                topics_dist = euclidean_distances(l2_spectra.values)
                 #   partition based on the first n neighbors
                 partitioning_order  = np.argpartition(topics_dist, n_neighbors+1)[:, :n_neighbors+1]
                 #   find the mean over those n_neighbors (excluding self, which has a distance of 0)
@@ -737,7 +728,7 @@ class cNMF():
 
         if show_clustering:
             if topics_dist is None:
-                topics_dist = squareform(fast_euclidean(l2_spectra.values))
+                topics_dist = euclidean_distances(l2_spectra.values)
                 # (l2_spectra was already filtered using the density filter)
             else:
                 # (but the previously computed topics_dist was not!)
@@ -750,7 +741,7 @@ class cNMF():
                 cl_filter = kmeans_cluster_labels==cl
 
                 if cl_filter.sum() > 1:
-                    cl_dist = squareform(topics_dist[cl_filter, :][:, cl_filter])
+                    cl_dist = squareform(topics_dist[cl_filter, :][:, cl_filter], checks=False)
                     cl_dist[cl_dist < 0] = 0 #Rarely get floating point arithmetic issues
                     cl_link = linkage(cl_dist, 'average')
                     cl_leaves_order = leaves_list(cl_link)
