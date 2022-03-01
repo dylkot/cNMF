@@ -10,8 +10,8 @@ It takes a count matrix (N cells X G genes) as input and produces a (K x G) matr
 We recommend creating a [conda](https://conda.io/miniconda.html) environment to install the required packages for cNMF. After installing and configuring conda, you can create an environment for the cNMF workflow using the commands below.
 
 ```
-conda update -yn base conda # Make sure conda is up to date
-conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults python==3.7 fastcluster matplotlib numpy palettable pandas scipy scikit-learn==1.02 pyyaml scanpy==1.8 && conda clean --yes --all # Create environment, cnmf_env, containing required packages
+conda update -yn base conda
+conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults python=3.7 fastcluster matplotlib numpy palettable pandas scipy 'scikit-learn>=1.0' pyyaml 'scanpy>=1.8' && conda clean --yes --all # Create environment, cnmf_env, containing required packages
 conda activate cnmf_env # Activate cnmf_env - necessary before running cnmf
 pip install cnmf # install the actual cnmf package
     
