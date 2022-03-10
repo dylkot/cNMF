@@ -250,7 +250,8 @@ class cNMF():
 
 
     def prepare(self, counts_fn, components, n_iter = 100, densify=False, tpm_fn=None, seed=None,
-                         beta_loss='frobenius',num_highvar_genes=2000, genes_file=None):
+                        beta_loss='frobenius',num_highvar_genes=2000, genes_file=None,
+                        alpha_usage=0.0, alpha_spectra=0.0):
         """
         Load input counts, reduce to high-variance genes, and variance normalize genes.
         Subsequently prepare file for distributing jobs over workers.
@@ -284,6 +285,12 @@ class cNMF():
         
         genes_file : str or None, optional (default=None)
             If provided will load high-variance genes from a list of these genes
+            
+        alpha_usage : float, optional (default=0.0)
+            Regularization parameter for NMF corresponding to alpha_W in scikit-learn
+
+        alpha_spectra : float, optional (default=0.0)
+            Regularization parameter for NMF corresponding to alpha_H in scikit-learn
         """
         
         
@@ -357,7 +364,9 @@ class cNMF():
             norm_counts.X = norm_counts.X.astype(np.float64)
 
         self.save_norm_counts(norm_counts)
-        (replicate_params, run_params) = self.get_nmf_iter_params(ks=components, n_iter=n_iter, random_state_seed=seed, beta_loss=beta_loss)
+        (replicate_params, run_params) = self.get_nmf_iter_params(ks=components, n_iter=n_iter, random_state_seed=seed,
+                                                                  beta_loss=beta_loss, alpha_usage=alpha_usage,
+                                                                  alpha_spectra=alpha_spectra)
         self.save_nmf_iter_params(replicate_params, run_params)
         
     
@@ -454,7 +463,8 @@ class cNMF():
         
     def get_nmf_iter_params(self, ks, n_iter = 100,
                                random_state_seed = None,
-                               beta_loss = 'kullback-leibler'):
+                               beta_loss = 'kullback-leibler',
+                               alpha_usage=0.0, alpha_spectra=0.0):
         """
         Create a DataFrame with parameters for NMF iterations.
 
@@ -471,7 +481,12 @@ class cNMF():
 
         random_state_seed : int or None, optional (default=None)
             Seed for sklearn random state.
+            
+        alpha_usage : float, optional (default=0.0)
+            Regularization parameter for NMF corresponding to alpha_W in scikit-learn
 
+        alpha_spectra : float, optional (default=0.0)
+            Regularization parameter for NMF corresponding to alpha_H in scikit-learn
         """
 
         if type(ks) is int:
@@ -491,14 +506,14 @@ class cNMF():
         replicate_params = pd.DataFrame(replicate_params, columns = ['n_components', 'iter', 'nmf_seed'])
 
         _nmf_kwargs = dict(
-                        alpha_W=0.0,
-                        alpha_H='same',
+                        alpha_W=alpha_usage,
+                        alpha_H=alpha_spectra,
                         l1_ratio=0.0,
                         beta_loss=beta_loss,
                         solver='mu',
                         tol=1e-4,
                         max_iter=1000,
-                        init='random'
+                        init='nndsvd'
                         )
         
         ## Coordinate descent is faster than multiplicative update but only works for frobenius
