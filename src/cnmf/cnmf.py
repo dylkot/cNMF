@@ -358,10 +358,6 @@ class cNMF():
 
         norm_counts = self.get_norm_counts(input_counts, tpm, num_highvar_genes=num_highvar_genes,
                                                high_variance_genes_filter=highvargenes)
-        
-        
-        if norm_counts.X.dtype != np.float64:
-            norm_counts.X = norm_counts.X.astype(np.float64)
 
         self.save_norm_counts(norm_counts)
         (replicate_params, run_params) = self.get_nmf_iter_params(ks=components, n_iter=n_iter, random_state_seed=seed,
@@ -676,7 +672,9 @@ class cNMF():
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
         # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
-        refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
+        refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)        
+        median_spectra = median_spectra.astype(norm_counts.X.dtype)
+        
         refit_nmf_kwargs.update(dict(
                                     n_components = k,
                                     H = median_spectra.values,
@@ -716,9 +714,6 @@ class cNMF():
         else:
             norm_tpm = (tpm.X - tpm_stats['__mean'].values) / tpm_stats['__std'].values
         
-        if norm_tpm.dtype != np.float64:
-            norm_tpm = norm_tpm.astype(np.float64)
-        
         usage_coef = fast_ols_all_cols(rf_usages.values, norm_tpm)
         usage_coef = pd.DataFrame(usage_coef, index=rf_usages.columns, columns=tpm.var.index)
 
@@ -728,13 +723,11 @@ class cNMF():
         # Convert spectra to TPM units, and obtain results for all genes by running last step of NMF
         # with usages fixed and TPM as the input matrix
         norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)
+        norm_usages = norm_usages.astype(tpm.X.dtype)
+
         refit_nmf_kwargs.update(dict(
                                     H = norm_usages.T.values,
                                 ))
-        
-        # Needed otherwise _nmf will crash because with inconsistent dtypes
-        if tpm.X.dtype != np.float64:
-            tpm.X = tpm.X.astype(np.float64)
         
         _, spectra_tpm = self._nmf(tpm.X.T, nmf_kwargs=refit_nmf_kwargs)
         spectra_tpm = pd.DataFrame(spectra_tpm.T, index=rf_usages.columns, columns=tpm.var.index)
