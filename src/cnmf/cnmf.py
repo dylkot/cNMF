@@ -509,7 +509,7 @@ class cNMF():
                         solver='mu',
                         tol=1e-4,
                         max_iter=1000,
-                        init='nndsvd'
+                        init='random'
                         )
         
         ## Coordinate descent is faster than multiplicative update but only works for frobenius
