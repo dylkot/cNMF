@@ -367,7 +367,16 @@ class cNMF():
         
     
     def combine(self, components=None, skip_missing_files=False):
-        run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
+        """
+        Combine NMF iterations for the same value of K
+        Parameters
+        ----------
+        components : list or None
+            Values of K to combine iterations for. Defaults to all.
+
+        skip_missing_files : boolean
+            If True, ignore iteration files that aren't found rather than crashing. Default: False
+        """
 
         if type(components) is int:
             ks = [components]
