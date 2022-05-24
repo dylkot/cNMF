@@ -251,7 +251,7 @@ class cNMF():
 
     def prepare(self, counts_fn, components, n_iter = 100, densify=False, tpm_fn=None, seed=None,
                         beta_loss='frobenius',num_highvar_genes=2000, genes_file=None,
-                        alpha_usage=0.0, alpha_spectra=0.0):
+                        alpha_usage=0.0, alpha_spectra=0.0, init='random'):
         """
         Load input counts, reduce to high-variance genes, and variance normalize genes.
         Subsequently prepare file for distributing jobs over workers.
@@ -362,7 +362,7 @@ class cNMF():
         self.save_norm_counts(norm_counts)
         (replicate_params, run_params) = self.get_nmf_iter_params(ks=components, n_iter=n_iter, random_state_seed=seed,
                                                                   beta_loss=beta_loss, alpha_usage=alpha_usage,
-                                                                  alpha_spectra=alpha_spectra)
+                                                                  alpha_spectra=alpha_spectra, init=init)
         self.save_nmf_iter_params(replicate_params, run_params)
         
     
@@ -460,7 +460,8 @@ class cNMF():
     def get_nmf_iter_params(self, ks, n_iter = 100,
                                random_state_seed = None,
                                beta_loss = 'kullback-leibler',
-                               alpha_usage=0.0, alpha_spectra=0.0):
+                               alpha_usage=0.0, alpha_spectra=0.0,
+                               init='random'):
         """
         Create a DataFrame with parameters for NMF iterations.
 
@@ -509,7 +510,7 @@ class cNMF():
                         solver='mu',
                         tol=1e-4,
                         max_iter=1000,
-                        init='random'
+                        init=init
                         )
         
         ## Coordinate descent is faster than multiplicative update but only works for frobenius
@@ -909,6 +910,7 @@ def main():
     parser.add_argument('--numgenes', type=int, help='[prepare] Number of high variance genes to use for matrix factorization.', default=2000)
     parser.add_argument('--tpm', type=str, help='[prepare] Pre-computed (cell x gene) TPM values as df.npz or tab separated txt file. If not provided TPM will be calculated automatically', default=None)
     parser.add_argument('--beta-loss', type=str, choices=['frobenius', 'kullback-leibler', 'itakura-saito'], help='[prepare] Loss function for NMF.', default='frobenius')
+    parser.add_argument('--init', type=str, choices=['random', 'nndsvd'], help='[prepare] Initialization algorithm for NMF.', default='random')
     parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse', action='store_true', default=False) 
     parser.add_argument('--worker-index', type=int, help='[factorize] Index of current worker (the first worker should have index 0)', default=0)
     parser.add_argument('--local-density-threshold', type=float, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default=0.5)
@@ -922,7 +924,7 @@ def main():
     if args.command == 'prepare':
         cnmf_obj.prepare(args.counts, components=args.components, n_iter=args.n_iter, densify=args.densify,
                          tpm_fn=args.tpm, seed=args.seed, beta_loss=args.beta_loss,
-                         num_highvar_genes=args.numgenes, genes_file=args.genes_file)
+                         num_highvar_genes=args.numgenes, genes_file=args.genes_file, init=args.init)
 
     elif args.command == 'factorize':
         cnmf_obj.factorize(worker_i=args.worker_index, total_workers=args.total_workers)
