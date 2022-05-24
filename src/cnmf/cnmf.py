@@ -366,7 +366,7 @@ class cNMF():
         self.save_nmf_iter_params(replicate_params, run_params)
         
     
-    def combine(self, components=None):
+    def combine(self, components=None, skip_missing_files=False):
         run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
 
         if type(components) is int:
@@ -377,7 +377,7 @@ class cNMF():
             ks = components
 
         for k in ks:
-            self.combine_nmf(k)    
+            self.combine_nmf(k, skip_missing_files=skip_missing_files)    
     
     
     
