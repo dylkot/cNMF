@@ -595,7 +595,7 @@ class cNMF():
             save_df_to_npz(spectra, self.paths['iter_spectra'] % (p['n_components'], p['iter']))
 
 
-    def combine_nmf(self, k, skip_missing=False, remove_individual_iterations=False):
+    def combine_nmf(self, k, skip_missing_files=False, remove_individual_iterations=False):
         run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         print('Combining factorizations for k=%d.'%k)
 
@@ -605,7 +605,7 @@ class cNMF():
         for i,p in run_params_subset.iterrows():
             current_file = self.paths['iter_spectra'] % (p['n_components'], p['iter'])
             if not os.path.exists(current_file):
-                if not skip_missing:
+                if not skip_missing_files:
                     print('Missing file: %s, run with skip_missing=True to override' % current_file)
                     raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), current_file)
                 else:
