@@ -595,29 +595,27 @@ class cNMF():
             save_df_to_npz(spectra, self.paths['iter_spectra'] % (p['n_components'], p['iter']))
 
 
-    def combine_nmf(self, k, remove_individual_iterations=False):
+    def combine_nmf(self, k, skip_missing=False, remove_individual_iterations=False):
         run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         print('Combining factorizations for k=%d.'%k)
 
-        combined_spectra = None
-        n_iter = sum(run_params.n_components==k)
-
         run_params_subset = run_params[run_params.n_components==k].sort_values('iter')
-        spectra_labels = []
+        combined_spectra = []
 
         for i,p in run_params_subset.iterrows():
+            current_file = self.paths['iter_spectra'] % (p['n_components'], p['iter'])
+            if not os.path.exists(current_file):
+                if not skip_missing:
+                    print('Missing file: %s, run with skip_missing=True to override' % current_file)
+                    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), current_file)
+                else:
+                    print('Missing file: %s. Skipping.' % current_file)
+            else:
+                spectra = load_df_from_npz(current_file)
+                spectra.index = ['iter%d_topic%d' % (p['iter'], t+1) for t in range(k)]
+                combined_spectra.append(spectra)
 
-            spectra = load_df_from_npz(self.paths['iter_spectra'] % (p['n_components'], p['iter']))
-            if combined_spectra is None:
-                combined_spectra = np.zeros((n_iter, k, spectra.shape[1]))
-            combined_spectra[p['iter'], :, :] = spectra.values
-
-            for t in range(k):
-                spectra_labels.append('iter%d_topic%d'%(p['iter'], t+1))
-
-        combined_spectra = combined_spectra.reshape(-1, combined_spectra.shape[-1])
-        combined_spectra = pd.DataFrame(combined_spectra, columns=spectra.columns, index=spectra_labels)
-
+        combined_spectra = pd.concat(combined_spectra, axis=0)
         save_df_to_npz(combined_spectra, self.paths['merged_spectra']%k)
         return combined_spectra
 
