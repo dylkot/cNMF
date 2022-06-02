@@ -878,6 +878,27 @@ class cNMF():
         fig.savefig(self.paths['k_selection_plot'], dpi=250)
         if close_fig:
             plt.close(fig)
+            
+            
+    def get_cnmf_results(self, K, ldthresh, n_top_genes=100):
+        """
+        Loads normalized usages and gene_spectra_scores for a given choice of K and 
+        local_density_threshold for the cNMF run. Additionally returns a DataFrame of
+        the top genes linked to each program with the number of genes indicated by the
+        `n_top_genes` parameter
+        """
+        scorefn = self.paths['gene_spectra_score__txt'] % (K, str(ldthresh).replace('.', '_'))
+        usagefn = self.paths['consensus_usages__txt'] % (K, str(ldthresh).replace('.', '_'))
+        spectra = pd.read_csv(scorefn, sep='\t', index_col=0).T
+        usage = pd.read_csv(usagefn, sep='\t', index_col=0)
+        usage = usage.div(usage.sum(axis=1), axis=0)
+    
+        top_genes = []
+        for gep in spectra.columns:
+            top_genes.append(list(spectra.sort_values(by=gep, ascending=False).index[:n_top_genes]))
+        
+        top_genes = pd.DataFrame(top_genes, index=spectra.columns).T
+        return(usage, spectra, top_genes)
 
 
 def main():
