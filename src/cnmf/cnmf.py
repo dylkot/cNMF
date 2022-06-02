@@ -624,9 +624,12 @@ class cNMF():
                 spectra = load_df_from_npz(current_file)
                 spectra.index = ['iter%d_topic%d' % (p['iter'], t+1) for t in range(k)]
                 combined_spectra.append(spectra)
-
-        combined_spectra = pd.concat(combined_spectra, axis=0)
-        save_df_to_npz(combined_spectra, self.paths['merged_spectra']%k)
+                
+        if len(combined_spectra)>0:        
+            combined_spectra = pd.concat(combined_spectra, axis=0)
+            save_df_to_npz(combined_spectra, self.paths['merged_spectra']%k)
+        else:
+            print('No spectra found for k=%d' % k)
         return combined_spectra
 
 
@@ -880,15 +883,21 @@ class cNMF():
             plt.close(fig)
             
             
-    def get_cnmf_results(self, K, ldthresh, n_top_genes=100):
+    def load_results(self, K, density_threshold, n_top_genes=100):
         """
         Loads normalized usages and gene_spectra_scores for a given choice of K and 
         local_density_threshold for the cNMF run. Additionally returns a DataFrame of
         the top genes linked to each program with the number of genes indicated by the
         `n_top_genes` parameter
+        
+        Returns
+        usage - cNMF usages (cells X K) normalized to sum to 1
+        spectra - Z-score regressed coeffecients for each program (K x genes) with higher values cooresponding
+                    to better marker genes
+        top_genes - ranked list of marker genes per GEP (n_top_genes X K)
         """
-        scorefn = self.paths['gene_spectra_score__txt'] % (K, str(ldthresh).replace('.', '_'))
-        usagefn = self.paths['consensus_usages__txt'] % (K, str(ldthresh).replace('.', '_'))
+        scorefn = self.paths['gene_spectra_score__txt'] % (K, str(density_threshold).replace('.', '_'))
+        usagefn = self.paths['consensus_usages__txt'] % (K, str(density_threshold).replace('.', '_'))
         spectra = pd.read_csv(scorefn, sep='\t', index_col=0).T
         usage = pd.read_csv(usagefn, sep='\t', index_col=0)
         usage = usage.div(usage.sum(axis=1), axis=0)
