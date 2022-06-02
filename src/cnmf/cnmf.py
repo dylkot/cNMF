@@ -381,6 +381,7 @@ class cNMF():
         if type(components) is int:
             ks = [components]
         elif components is None:
+            run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
             ks = sorted(set(run_params.n_components))
         else:
             ks = components
