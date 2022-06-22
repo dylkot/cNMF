@@ -631,6 +631,33 @@ class cNMF():
         else:
             print('No spectra found for k=%d' % k)
         return combined_spectra
+    
+    
+    def refit_usage(self, X, spectra):
+        """
+        Take an input data matrix and a fixed spectra and use NNLS to find the optimal
+        usage matrix. Generic kwargs for NMF are loaded from self.paths['nmf_run_parameters']
+
+        Parameters
+        ----------
+        X : pandas.DataFrame, cells X genes
+            Non-negative expression data to fit spectra to
+
+        spectra : pandas.DataFrame, programs X genes
+            Non-negative spectra of expression programs
+        """
+
+        refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
+        refit_nmf_kwargs.update(dict(
+                                    n_components = spectra.shape[0],
+                                    H = spectra.values,
+                                    update_H = False
+                                    ))
+        
+        _, rf_usages = self._nmf(X, nmf_kwargs=refit_nmf_kwargs)
+        rf_usages = pd.DataFrame(rf_usages, index=X.index, columns=spectra.index)
+        return(rf_usages)
+    
 
 
     def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = True,
