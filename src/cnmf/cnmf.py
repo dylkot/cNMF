@@ -650,18 +650,34 @@ class cNMF():
         """
 
         refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
-        refit_nmf_kwargs.update(dict(
-                                    n_components = spectra.shape[0],
-                                    H = spectra.values,
-                                    update_H = False
-                                    ))
-        
+        if type(spectra) is pd.DataFrame:
+            refit_nmf_kwargs.update(dict(n_components = spectra.shape[0], H = spectra.values, update_H = False))
+        else:
+            refit_nmf_kwargs.update(dict(n_components = spectra.shape[0], H = spectra, update_H = False))
+            
         _, rf_usages = self._nmf(X, nmf_kwargs=refit_nmf_kwargs)
         if (type(X) is pd.DataFrame) and (type(spectra) is pd.DataFrame):
             rf_usages = pd.DataFrame(rf_usages, index=X.index, columns=spectra.index)
           
         return(rf_usages)
     
+    
+    def refit_spectra(self, X, usage):
+        """
+        Takes an input data matrix and a fixed usage matrix and uses NNLS to find the optimal
+        spectra matrix. Generic kwargs for NMF are loaded from self.paths['nmf_run_parameters'].
+        If input data are pandas.DataFrame, returns a DataFrame with row index matching X and
+        columns index matching index of spectra
+
+        Parameters
+        ----------
+        X : pandas.DataFrame or numpy.ndarray, cells X genes
+            Non-negative expression data to fit spectra to
+
+        usage : pandas.DataFrame or numpy.ndarray, cells X programs
+            Non-negative spectra of expression programs
+        """
+        return(self.refit_usage(X.T, usage.T).T)
 
 
     def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = True,
@@ -677,7 +693,6 @@ class cNMF():
 
         # Rescale topics such to length of 1.
         l2_spectra = (merged_spectra.T/np.sqrt((merged_spectra**2).sum(axis=1))).T
-
 
         if not skip_density_and_return_after_stats:
             # Compute the local density matrix (if not previously cached)
@@ -734,14 +749,18 @@ class cNMF():
         
         # Compute TPM gene-scores for each GEP by regressing usage on TPM matrix
         tpm = sc.read(self.paths['tpm'])
-        tpm_stats = load_df_from_npz(self.paths['tpm_stats'])        
+        tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
+        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)
+        norm_usages = norm_usages.astype(tpm.X.dtype)
+        refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
+        refit_nmf_kwargs.update(dict(
+                                    H = norm_usages.T.values,
+                                    n_components = norm_usages.shape[1],
+                                    update_H = False
+                                ))        
         
-        
-        
-        
-        
-        
-        
+        spectra_tpm = self.refit_spectra(tpm.X, norm_usages)
+        spectra_tpm = pd.DataFrame(spectra_tpm, index=rf_usages.columns, columns=tpm.var.index)
         
         save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
         save_df_to_npz(rf_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
@@ -762,15 +781,9 @@ class cNMF():
 
         # Convert spectra to TPM units, and obtain results for all genes by running last step of NMF
         # with usages fixed and TPM as the input matrix
-        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)
-        norm_usages = norm_usages.astype(tpm.X.dtype)
 
-        refit_nmf_kwargs.update(dict(
-                                    H = norm_usages.T.values,
-                                ))
         
-        _, spectra_tpm = self._nmf(tpm.X.T, nmf_kwargs=refit_nmf_kwargs)
-        spectra_tpm = pd.DataFrame(spectra_tpm.T, index=rf_usages.columns, columns=tpm.var.index)
+
         save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
         save_df_to_text(spectra_tpm, self.paths['gene_spectra_tpm__txt']%(k, density_threshold_repl))
 
