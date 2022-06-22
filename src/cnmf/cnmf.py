@@ -635,15 +635,17 @@ class cNMF():
     
     def refit_usage(self, X, spectra):
         """
-        Take an input data matrix and a fixed spectra and use NNLS to find the optimal
-        usage matrix. Generic kwargs for NMF are loaded from self.paths['nmf_run_parameters']
+        Takes an input data matrix and a fixed spectra and uses NNLS to find the optimal
+        usage matrix. Generic kwargs for NMF are loaded from self.paths['nmf_run_parameters'].
+        If input data are pandas.DataFrame, returns a DataFrame with row index matching X and
+        columns index matching index of spectra
 
         Parameters
         ----------
-        X : pandas.DataFrame, cells X genes
+        X : pandas.DataFrame or numpy.ndarray, cells X genes
             Non-negative expression data to fit spectra to
 
-        spectra : pandas.DataFrame, programs X genes
+        spectra : pandas.DataFrame or numpy.ndarray, programs X genes
             Non-negative spectra of expression programs
         """
 
@@ -655,7 +657,9 @@ class cNMF():
                                     ))
         
         _, rf_usages = self._nmf(X, nmf_kwargs=refit_nmf_kwargs)
-        rf_usages = pd.DataFrame(rf_usages, index=X.index, columns=spectra.index)
+        if (type(X) is pd.DataFrame) and (type(spectra) is pd.DataFrame):
+            rf_usages = pd.DataFrame(rf_usages, index=X.index, columns=spectra.index)
+          
         return(rf_usages)
     
 
@@ -711,18 +715,8 @@ class cNMF():
         stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
         # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
-        refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)        
-        median_spectra = median_spectra.astype(norm_counts.X.dtype)
-        
-        refit_nmf_kwargs.update(dict(
-                                    n_components = k,
-                                    H = median_spectra.values,
-                                    update_H = False
-                                    ))
-        
-        _, rf_usages = self._nmf(norm_counts.X,
-                                          nmf_kwargs=refit_nmf_kwargs)
-        rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)
+        rf_usages = self.refit_usage(norm_counts.X, median_spectra)
+        rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)        
         rf_pred_norm_counts = rf_usages.dot(median_spectra)
 
         # Compute prediction error as a frobenius norm
@@ -738,15 +732,22 @@ class cNMF():
         if skip_density_and_return_after_stats:
             return consensus_stats
         
+        # Compute TPM gene-scores for each GEP by regressing usage on TPM matrix
+        tpm = sc.read(self.paths['tpm'])
+        tpm_stats = load_df_from_npz(self.paths['tpm_stats'])        
+        
+        
+        
+        
+        
+        
+        
+        
         save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
         save_df_to_npz(rf_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
         save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
         save_df_to_text(median_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
         save_df_to_text(rf_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
-
-        # Compute gene-scores for each GEP by regressing usage on Z-scores of TPM
-        tpm = sc.read(self.paths['tpm'])
-        tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
         
         if sp.issparse(tpm.X):
             norm_tpm = (np.array(tpm.X.todense()) - tpm_stats['__mean'].values) / tpm_stats['__std'].values
