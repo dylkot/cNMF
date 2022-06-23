@@ -197,11 +197,9 @@ See the tutorials for some subsequent analysis steps that could be used to analy
 
 ### New in version 1.4
 - Usage is re-fit a final time from gene_spectra_tpm which increases accuracy in simulations
-- Use cnmf_obj.load_results(K=_, density_threshold=_) to obtain usage, spectra, and top_genes matrices
+- Use cnmf_obj.load_results(K=_, density_threshold=_) to obtain usage, spectra_scores, spectra_tpm, and top_genes matrices
 - cnmf_obj.combine() now has a skip_missing_files=True/False option to skip incomplete factorize iterations
 - GEPs are now ordered by maximum total usage
-
-
 
 ### New in version 1.3
 - Installation via pip
