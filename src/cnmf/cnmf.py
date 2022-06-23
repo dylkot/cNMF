@@ -736,8 +736,14 @@ class cNMF():
         rf_pred_norm_counts = rf_usages.dot(median_spectra)
         
         # Re-order usage by total contribution
-        #reorder = rf_usages.sum(axis=0).sort_values(ascending=False)
-        #print(reorder)
+        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)      
+        reorder = norm_usages.sum(axis=0).sort_values(ascending=False)
+        rf_usages = rf_usages.loc[:, reorder.index]
+        norm_usages = norm_usages.loc[:, reorder.index]
+        median_spectra = median_spectra.loc[reorder.index, :]
+        rf_usages.columns = np.arange(1, rf_usages.shape[1]+1)
+        norm_usages.columns = rf_usages.columns
+        median_spectra.index = rf_usages.columns
 
         # Compute prediction error as a frobenius norm
         if sp.issparse(norm_counts.X):
@@ -756,8 +762,7 @@ class cNMF():
         # with usages fixed and TPM as the input matrix
         tpm = sc.read(self.paths['tpm'])
         tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
-        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0).astype(tpm.X.dtype)        
-        spectra_tpm = self.refit_spectra(tpm.X, norm_usages)
+        spectra_tpm = self.refit_spectra(tpm.X, norm_usages.astype(tpm.X.dtype))
         spectra_tpm = pd.DataFrame(spectra_tpm, index=rf_usages.columns, columns=tpm.var.index)
         
         # Convert spectra to Z-score units, and obtain results for all genes by running last step of NMF
@@ -947,17 +952,24 @@ class cNMF():
         top_genes - ranked list of marker genes per GEP (n_top_genes X K)
         """
         scorefn = self.paths['gene_spectra_score__txt'] % (K, str(density_threshold).replace('.', '_'))
+        tpmfn = self.paths['gene_spectra_tpm__txt'] % (K, str(density_threshold).replace('.', '_'))
         usagefn = self.paths['consensus_usages__txt'] % (K, str(density_threshold).replace('.', '_'))
-        spectra = pd.read_csv(scorefn, sep='\t', index_col=0).T
+        spectra_scores = pd.read_csv(scorefn, sep='\t', index_col=0).T
+        spectra_tpm = pd.read_csv(tpmfn, sep='\t', index_col=0).T
+
         usage = pd.read_csv(usagefn, sep='\t', index_col=0)
         usage = usage.div(usage.sum(axis=1), axis=0)
+        try:
+            usage.columns = [int(x) for x in usage.columns]
+        except:
+            print('Usage matrix columns include non integer values')
     
         top_genes = []
         for gep in spectra.columns:
-            top_genes.append(list(spectra.sort_values(by=gep, ascending=False).index[:n_top_genes]))
+            top_genes.append(list(spectra_scores.sort_values(by=gep, ascending=False).index[:n_top_genes]))
         
-        top_genes = pd.DataFrame(top_genes, index=spectra.columns).T
-        return(usage, spectra, top_genes)
+        top_genes = pd.DataFrame(top_genes, index=spectra_scores.columns).T
+        return(usage, spectra_scores, spectra_tpm, top_genes)
 
 
 def main():
