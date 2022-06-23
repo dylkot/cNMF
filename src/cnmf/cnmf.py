@@ -764,6 +764,7 @@ class cNMF():
         tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
         spectra_tpm = self.refit_spectra(tpm.X, norm_usages.astype(tpm.X.dtype))
         spectra_tpm = pd.DataFrame(spectra_tpm, index=rf_usages.columns, columns=tpm.var.index)
+        spectra_tpm = spectra_tpm.div(spectra_tpm.sum(axis=1), axis=0) * 1e6
         
         # Convert spectra to Z-score units, and obtain results for all genes by running last step of NMF
         # with usages fixed and Z-scored TPM as the input matrix
@@ -959,13 +960,14 @@ class cNMF():
 
         usage = pd.read_csv(usagefn, sep='\t', index_col=0)
         usage = usage.div(usage.sum(axis=1), axis=0)
+        
         try:
             usage.columns = [int(x) for x in usage.columns]
         except:
             print('Usage matrix columns include non integer values')
     
         top_genes = []
-        for gep in spectra.columns:
+        for gep in spectra_scores.columns:
             top_genes.append(list(spectra_scores.sort_values(by=gep, ascending=False).index[:n_top_genes]))
         
         top_genes = pd.DataFrame(top_genes, index=spectra_scores.columns).T

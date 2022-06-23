@@ -51,10 +51,10 @@ cnmf_obj.factorize(worker_i=0, total_workers=1)
 cnmf_obj.combine()
 cnmf_obj.k_selection_plot()
 cnmf_obj.consensus(k=10, density_threshold=0.2)
-usage, spectra, top_genes = cnmf_obj.load_results(K=32, density_threshold=0.01)
+usage, spectra_scores, spectra_tpm, top_genes = cnmf_obj.load_results(K=32, density_threshold=0.01)
 
 ```
-For the Python environment approach, `usage` will contain the usage matrix with each cell normalized to sum to 1. `Spectra` contains the gene_spectra_scores output (aka Z-score unit gene expression matrix), and `top_genes` contains an ordered list of the top 100 associated genes for each program. Output data files will all be available in the ./example_data/example_cNMF directory including:
+For the Python environment approach, `usage` will contain the usage matrix with each cell normalized to sum to 1. `spectra_scores` contains the gene_spectra_scores output (aka Z-score unit gene expression matrix), `spectra_tpm` contains the GEP spectra in units of TPM and `top_genes` contains an ordered list of the top 100 associated genes for each program. Output data files will all be available in the ./example_data/example_cNMF directory including:
    - Z-score unit gene expression program matrix - example_data/example_cNMF/example_cNMF.gene_spectra_score.k_10.dt_0_01.txt
    - TPM unit gene expression program  matrix - example_data/example_cNMF/example_cNMF.gene_spectra_tpm.k_10.dt_0_01.txt
    - Usage matrix example_data/example_cNMF/example_cNMF.usages.k_10.dt_0_01.consensus.txt
