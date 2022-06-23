@@ -681,7 +681,8 @@ class cNMF():
 
 
     def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = True,
-                  skip_density_and_return_after_stats = False, close_clustergram_fig=False):
+                  skip_density_and_return_after_stats = False, close_clustergram_fig=False,
+                  refit_usage=True):
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         norm_counts = sc.read(self.paths['normalized_counts'])
 
@@ -747,27 +748,16 @@ class cNMF():
         if skip_density_and_return_after_stats:
             return consensus_stats
         
-        # Compute TPM gene-scores for each GEP by regressing usage on TPM matrix
+        # Convert spectra to TPM units, and obtain results for all genes by running last step of NMF
+        # with usages fixed and TPM as the input matrix
         tpm = sc.read(self.paths['tpm'])
         tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
-        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)
-        norm_usages = norm_usages.astype(tpm.X.dtype)
-        refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
-        refit_nmf_kwargs.update(dict(
-                                    H = norm_usages.T.values,
-                                    n_components = norm_usages.shape[1],
-                                    update_H = False
-                                ))        
-        
+        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0).astype(tpm.X.dtype)        
         spectra_tpm = self.refit_spectra(tpm.X, norm_usages)
         spectra_tpm = pd.DataFrame(spectra_tpm, index=rf_usages.columns, columns=tpm.var.index)
         
-        save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
-        save_df_to_npz(rf_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
-        save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
-        save_df_to_text(median_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
-        save_df_to_text(rf_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
-        
+        # Convert spectra to Z-score units, and obtain results for all genes by running last step of NMF
+        # with usages fixed and Z-scored TPM as the input matrix
         if sp.issparse(tpm.X):
             norm_tpm = (np.array(tpm.X.todense()) - tpm_stats['__mean'].values) / tpm_stats['__std'].values
         else:
@@ -775,18 +765,33 @@ class cNMF():
         
         usage_coef = fast_ols_all_cols(rf_usages.values, norm_tpm)
         usage_coef = pd.DataFrame(usage_coef, index=rf_usages.columns, columns=tpm.var.index)
-
-        save_df_to_npz(usage_coef, self.paths['gene_spectra_score']%(k, density_threshold_repl))
-        save_df_to_text(usage_coef, self.paths['gene_spectra_score__txt']%(k, density_threshold_repl))
-
-        # Convert spectra to TPM units, and obtain results for all genes by running last step of NMF
-        # with usages fixed and TPM as the input matrix
-
         
+        if refit_usage:
+            ## Re-fitting usage a final time on std-scaled HVG TPM seems to
+            ## increase accuracy on simulated data
+            hvgs = open(self.paths['nmf_genes_list']).read().split('\n')
+            norm_tpm = tpm[:, hvgs]
+            if sp.issparse(norm_tpm.X):
+                sc.pp.scale(norm_tpm, zero_center=False)                       
+            else:
+                norm_tpm.X /= norm_tpm.X.std(axis=0, ddof=1)
+                
+            spectra_tpm_rf = spectra_tpm.loc[:,hvgs]
+            tpm_stats.index = tpm.var.index
 
+            spectra_tpm_rf = spectra_tpm_rf.div(tpm_stats.loc[hvgs, '__std'], axis=1)
+            rf_usages = self.refit_usage(norm_tpm.X, spectra_tpm_rf)
+            rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=spectra_tpm_rf.index)                                                                  
+               
+        save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
+        save_df_to_npz(rf_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
+        save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
+        save_df_to_text(median_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
+        save_df_to_text(rf_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
         save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
         save_df_to_text(spectra_tpm, self.paths['gene_spectra_tpm__txt']%(k, density_threshold_repl))
-
+        save_df_to_npz(usage_coef, self.paths['gene_spectra_score']%(k, density_threshold_repl))
+        save_df_to_text(usage_coef, self.paths['gene_spectra_score__txt']%(k, density_threshold_repl))
         if show_clustering:
             if topics_dist is None:
                 topics_dist = euclidean_distances(l2_spectra.values)
