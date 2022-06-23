@@ -50,8 +50,8 @@ cnmf_obj.prepare(counts_fn="./example_data/counts_prefiltered.txt", components=n
 cnmf_obj.factorize(worker_i=0, total_workers=1)
 cnmf_obj.combine()
 cnmf_obj.k_selection_plot()
-cnmf_obj.consensus(k=10, density_threshold=0.2)
-usage, spectra_scores, spectra_tpm, top_genes = cnmf_obj.load_results(K=32, density_threshold=0.01)
+cnmf_obj.consensus(k=10, density_threshold=0.01)
+usage, spectra_scores, spectra_tpm, top_genes = cnmf_obj.load_results(K=10, density_threshold=0.01)
 
 ```
 For the Python environment approach, `usage` will contain the usage matrix with each cell normalized to sum to 1. `spectra_scores` contains the gene_spectra_scores output (aka Z-score unit gene expression matrix), `spectra_tpm` contains the GEP spectra in units of TPM and `top_genes` contains an ordered list of the top 100 associated genes for each program. Output data files will all be available in the ./example_data/example_cNMF directory including:
