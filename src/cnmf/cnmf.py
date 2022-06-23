@@ -734,6 +734,10 @@ class cNMF():
         rf_usages = self.refit_usage(norm_counts.X, median_spectra)
         rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)        
         rf_pred_norm_counts = rf_usages.dot(median_spectra)
+        
+        # Re-order usage by total contribution
+        #reorder = rf_usages.sum(axis=0).sort_values(ascending=False)
+        #print(reorder)
 
         # Compute prediction error as a frobenius norm
         if sp.issparse(norm_counts.X):

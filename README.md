@@ -1,4 +1,4 @@
-# Consensus Non-negative Matrix factorization (cNMF) v1.3
+# Consensus Non-negative Matrix factorization (cNMF) v1.4
 
 <img src="https://storage.googleapis.com/sabeti-public/dkotliar/elife-cNMF-fig1.jpg" height="800" />
 
@@ -50,9 +50,11 @@ cnmf_obj.prepare(counts_fn="./example_data/counts_prefiltered.txt", components=n
 cnmf_obj.factorize(worker_i=0, total_workers=1)
 cnmf_obj.combine()
 cnmf_obj.k_selection_plot()
-```
+cnmf_obj.consensus(k=10, density_threshold=0.2)
+usage, spectra, top_genes = cnmf_obj.load_results(K=32, density_threshold=0.01)
 
-The output data will all be available in the ./example_data/example_cNMF directory including:
+```
+For the Python environment approach, `usage` will contain the usage matrix with each cell normalized to sum to 1. `Spectra` contains the gene_spectra_scores output (aka Z-score unit gene expression matrix), and `top_genes` contains an ordered list of the top 100 associated genes for each program. Output data files will all be available in the ./example_data/example_cNMF directory including:
    - Z-score unit gene expression program matrix - example_data/example_cNMF/example_cNMF.gene_spectra_score.k_10.dt_0_01.txt
    - TPM unit gene expression program  matrix - example_data/example_cNMF/example_cNMF.gene_spectra_tpm.k_10.dt_0_01.txt
    - Usage matrix example_data/example_cNMF/example_cNMF.usages.k_10.dt_0_01.consensus.txt
@@ -193,16 +195,24 @@ See the tutorials for some subsequent analysis steps that could be used to analy
 
 # Change log
 
-### Updates from version 1.2
+### New in version 1.4
+- Usage is re-fit a final time from gene_spectra_tpm which increases accuracy in simulations
+- Use cnmf_obj.load_results(K=_, density_threshold=_) to obtain usage, spectra, and top_genes matrices
+- cnmf_obj.combine() now has a skip_missing_files=True/False option to skip incomplete factorize iterations
+- GEPs are now ordered by maximum total usage
+
+
+
+### New in version 1.3
 - Installation via pip
 - Object oriented interface for Python users and command line script option via `cnmf`  
 
-### Updates from version 1.1
+### New in version 1.2
  - Increased the threshold for ignoring genes with low mean expression for determining high-variance genes from a TPM of 0.01 to 0.5. Some users were identifying uninterpretable programs with very low usage except in a tiny number of cells. We suspect that this was due to including genes as high-variance that are detected in a small number of cells. This change in the default parameter will help offset that problem in most cases.
  - Updated import of NMF for compatibility with scikit-learn versions >22
  - Colorbar for heatmaps included with consensus matrix plot
 
-### Updates from version 1.0
+### New in version 1.1
  - Now operates by default on sparse matrices. Use --densify option in prepare step if data is not sparse
  - Now takes Scanpy AnnData object files (.h5ad) as input
  - Now has option to use KL divergence beta_loss instead of Frobenius. Frobenius is the default because it is much faster.
