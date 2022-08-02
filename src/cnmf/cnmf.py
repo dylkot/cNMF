@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 import scanpy as sc
 
-from multiprocessing import Pool 
+from multiprocessing import Pool, Process 
 
 
 def save_df_to_npz(obj, filename):
@@ -573,8 +573,11 @@ class cNMF():
         total_workers: int; number of workers to use.
         """
         list_args = [(x, total_workers, self) for x in range(total_workers)]
+        
         with Pool(total_workers) as p:
+            
             p.map(factorize_mp_signature, list_args)
+            p.close()
             p.join()    
     
     def factorize(self,
