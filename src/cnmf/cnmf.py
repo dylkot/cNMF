@@ -567,7 +567,7 @@ class cNMF():
         return(spectra, usages)
 
     def factorize_multi_process(self, total_workers):
-    	"""
+        """
         multiproces wrapper for nmf.factorize()
         factorize_mp_signature is direct wrapper around factorize to be able to launch it form mp.
         total_workers: int; number of workers to use.
