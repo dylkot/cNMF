@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 import scanpy as sc
 
-from multiprocessing import Pool, Process 
+from multiprocessing import Pool 
 
 
 def save_df_to_npz(obj, filename):
