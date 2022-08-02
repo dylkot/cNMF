@@ -24,6 +24,9 @@ import matplotlib.pyplot as plt
 
 import scanpy as sc
 
+from multiprocessing import Pool 
+
+
 def save_df_to_npz(obj, filename):
     np.savez_compressed(filename, data=obj.values, index=obj.index.values, columns=obj.columns.values)
 
@@ -182,6 +185,17 @@ def compute_tpm(input_counts):
     tpm = input_counts.copy()
     sc.pp.normalize_per_cell(tpm, counts_per_cell_after=1e6)
     return(tpm)
+
+
+def factorize_mp_signature(args):
+    """
+    wrapper around factorize to be able to use mp pool.
+    args is a list:
+    worker-i: int
+    total_workers: int
+    pointer to nmf object.
+    """
+    args[2].factorize(worker_i=args[0],  total_workers=args[1])
 
 
 class cNMF():
@@ -552,7 +566,17 @@ class cNMF():
 
         return(spectra, usages)
 
-
+    def factorize_multi_process(self, total_workers):
+    	"""
+        multiproces wrapper for nmf.factorize()
+        factorize_mp_signature is direct wrapper around factorize to be able to launch it form mp.
+        total_workers: int; number of workers to use.
+        """
+        list_args = [(x, total_workers, self) for x in range(total_workers)]
+        with Pool(total_workers) as p:
+            p.map(factorize_mp_signature, list_args)
+            p.join()    
+    
     def factorize(self,
                 worker_i=0, total_workers=1,
                 ):
