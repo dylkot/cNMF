@@ -709,7 +709,7 @@ class cNMF():
 
     def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = True,
                   skip_density_and_return_after_stats = False, close_clustergram_fig=False,
-                  refit_usage=True):
+                  refit_usage=True, normalize_tpm_spectra=False):
         """
         Obtain consensus estimates of spectra and usages from a cNMF run and output a clustergram of
         the consensus matrix. Assumes prepare, factorize, and combine steps have already been run.
@@ -737,8 +737,14 @@ class cNMF():
             If True, closes the clustergram figure from output after saving the image to a file
             
         refit_usage : boolean (default=True)
-            If True, refit the usage matrix one final time after finalizing the spectra_tpm matrix. Has been shown
-            to increase inference accuracy in simulations.
+            If True, refit the usage matrix one final time after finalizing the spectra_tpm matrix. Done by regressing 
+            the tpm matrix against the tpm_spectra including only high-variance genes and with both the tpm matrix
+            and tpm_spectra normalized by the standard deviations of the genes in tpm scale.
+            
+        normalize_tpm_spectra : boolean (default=False)
+            If True, renormalizes the tpm_spectra to sum to 1e6 for each program. This is done before refitting usages.
+            If not used, the tpm_spectra are exactly as calcuated when refitting the usage matrix against the tpm matrix
+            and typically will not sum to the same value for each program.
         """
         
         
@@ -823,7 +829,8 @@ class cNMF():
         tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
         spectra_tpm = self.refit_spectra(tpm.X, norm_usages.astype(tpm.X.dtype))
         spectra_tpm = pd.DataFrame(spectra_tpm, index=rf_usages.columns, columns=tpm.var.index)
-        spectra_tpm = spectra_tpm.div(spectra_tpm.sum(axis=1), axis=0) * 1e6
+        if normalize_tpm_spectra:
+            spectra_tpm = spectra_tpm.div(spectra_tpm.sum(axis=1), axis=0) * 1e6
         
         # Convert spectra to Z-score units, and obtain results for all genes by running last step of NMF
         # with usages fixed and Z-scored TPM as the input matrix
