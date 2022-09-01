@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="cnmf",
-    version="1.3.4",
+    version="1.3.5",
     author="Dylan Kotliar",
     author_email="dylkot@gmail.com",
     description="Consensus NMF for scRNA-Seq data",
