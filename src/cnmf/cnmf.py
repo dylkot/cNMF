@@ -348,7 +348,7 @@ class cNMF():
             
             
         input_tpm_stats = pd.DataFrame([gene_tpm_mean, gene_tpm_stddev],
-             index = ['__mean', '__std']).T
+             index = ['__mean', '__std'], columns = tpm.var.index).T
         save_df_to_npz(input_tpm_stats, self.paths['tpm_stats'])
         
         if genes_file is not None:
@@ -787,7 +787,6 @@ class cNMF():
                 norm_tpm.X /= norm_tpm.X.std(axis=0, ddof=1)
                 
             spectra_tpm_rf = spectra_tpm.loc[:,hvgs]
-            tpm_stats.index = tpm.var.index
 
             spectra_tpm_rf = spectra_tpm_rf.div(tpm_stats.loc[hvgs, '__std'], axis=1)
             rf_usages = self.refit_usage(norm_tpm.X, spectra_tpm_rf)
