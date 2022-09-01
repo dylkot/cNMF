@@ -268,7 +268,7 @@ class cNMF():
                         alpha_usage=0.0, alpha_spectra=0.0, init='random'):
         """
         Load input counts, reduce to high-variance genes, and variance normalize genes.
-        Subsequently prepare file for distributing jobs over workers.
+        Prepare file for distributing jobs over workers.
 
 
         Parameters
@@ -710,6 +710,38 @@ class cNMF():
     def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = True,
                   skip_density_and_return_after_stats = False, close_clustergram_fig=False,
                   refit_usage=True):
+        """
+        Obtain consensus estimates of spectra and usages from a cNMF run and output a clustergram of
+        the consensus matrix. Assumes prepare, factorize, and combine steps have already been run.
+
+
+        Parameters
+        ----------
+        k : int
+            Number of programs (must be within the k values specified in previous steps)
+
+        density_threshold : float (default: 0.5)
+            Threshold for filtering outlier spectra. 2.0 or greater applies no filter.
+            
+        local_neighborhood_size : float (default: 0.3)
+            Determines number of neighbors to use for calculating KNN distance as local_neighborhood_size X n_iters
+
+        show_clustering : boolean (default=False)
+            If True, generates the consensus clustergram filter
+
+        skip_density_and_return_after_stats : boolean (default=False)
+            True when running k_selection_plot to compute stability and error for input parameters without computing
+            consensus spectra and usages
+            
+        close_clustergram_fig : boolean (default=False)
+            If True, closes the clustergram figure from output after saving the image to a file
+            
+        refit_usage : boolean (default=True)
+            If True, refit the usage matrix one final time after finalizing the spectra_tpm matrix. Has been shown
+            to increase inference accuracy in simulations.
+        """
+        
+        
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
         norm_counts = sc.read(self.paths['normalized_counts'])
 
