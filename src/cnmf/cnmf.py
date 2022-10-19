@@ -1004,15 +1004,29 @@ class cNMF():
             plt.close(fig)
             
             
-    def load_results(self, K, density_threshold, n_top_genes=100):
+    def load_results(self, K, density_threshold, n_top_genes=100, norm_usage = True):
         """
         Loads normalized usages and gene_spectra_scores for a given choice of K and 
         local_density_threshold for the cNMF run. Additionally returns a DataFrame of
-        the top genes linked to each program with the number of genes indicated by the
-        `n_top_genes` parameter
+        the top genes linked to each program
+        
+        Parameters
+        ----------
+        K : int
+            Number of programs (must be within the k values specified in previous steps)
+
+        density_threshold : float
+            Threshold for filtering outlier spectra (must be within the values specified in consensus step)
+
+        n_top_genes : integer, optional (default=100)
+            Number of top genes per program to return
+
+        norm_usage : boolean, optional (default=True)
+            If True, normalize cNMF usages to sum to 1
         
         Returns
-        usage - cNMF usages (cells X K) normalized to sum to 1
+        ----------
+        usage - cNMF usages (cells X K)
         spectra - Z-score regressed coeffecients for each program (K x genes) with higher values cooresponding
                     to better marker genes
         top_genes - ranked list of marker genes per GEP (n_top_genes X K)
@@ -1024,7 +1038,9 @@ class cNMF():
         spectra_tpm = pd.read_csv(tpmfn, sep='\t', index_col=0).T
 
         usage = pd.read_csv(usagefn, sep='\t', index_col=0)
-        usage = usage.div(usage.sum(axis=1), axis=0)
+        
+        if norm_usage:
+            usage = usage.div(usage.sum(axis=1), axis=0)
         
         try:
             usage.columns = [int(x) for x in usage.columns]
