@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-import os, errno
+import os, errno, sys
 import datetime
 import uuid
 import itertools
@@ -467,11 +467,15 @@ class cNMF():
         open(self.paths['nmf_genes_list'], 'w').write('\n'.join(high_variance_genes_filter))
 
         ## Check for any cells that have 0 counts of the overdispersed genes
-        zerocells = norm_counts.X.sum(axis=1)==0
+        zerocells = np.array(norm_counts.X.sum(axis=1)==0).reshape(-1)
         if zerocells.sum()>0:
             examples = norm_counts.obs.index[zerocells]
-            print('Warning: %d cells have zero counts of overdispersed genes. E.g. %s' % (zerocells.sum(), examples[0]))
-            print('Consensus step may not run when this is the case')
+            if zerocells.sum()>100:
+                print('Error: %d cells have zero counts of overdispersed genes. Printing first 100: %s' % (zerocells.sum(), ', '.join(examples[:100])))
+            else:
+                print('Error: %d cells have zero counts of overdispersed genes: %s' % (zerocells.sum(), ', '.join(examples)))
+                
+            sys.exit('Consensus step cannot run when this is the case')
         
         return(norm_counts)
 
