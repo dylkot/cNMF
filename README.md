@@ -1,4 +1,4 @@
-# Consensus Non-negative Matrix factorization (cNMF) v1.4
+# Consensus Non-negative Matrix factorization (cNMF) v1.5
 
 <img src="https://storage.googleapis.com/sabeti-public/dkotliar/elife-cNMF-fig1.jpg" height="650" />
 
@@ -197,6 +197,10 @@ See the tutorials for some subsequent analysis steps that could be used to analy
 
 # Change log
 
+### New in version 1.5
+- Fixed bug in detecting and printing cells with 0 counts of overdispersed genes
+- Added option in load_results() to return normalized or unnormalized usage.
+
 ### New in version 1.4
 - Usage is re-fit a final time from gene_spectra_tpm which increases accuracy in simulations
 - Use cnmf_obj.load_results(K=_, density_threshold=_) to obtain usage, spectra_scores, spectra_tpm, and top_genes matrices
@@ -219,7 +223,3 @@ See the tutorials for some subsequent analysis steps that could be used to analy
  - Includes a Docker file for creating a Docker container to run cNMF in parallel with cloud compute
  - Includes a tutorial on a simple PBMC dataset
  - Other minor fixes
-
-# Links to previous versions of the code
-- [cNMF_v1.1.zip](https://storage.googleapis.com/sabeti-public/dkotliar/cNMF/cNMF_v1.1.zip)
-- [cNMF_v1.0.zip](https://storage.googleapis.com/sabeti-public/dkotliar/cNMF/cNMF_v1.0.zip)   
