@@ -471,12 +471,10 @@ class cNMF():
         if zerocells.sum()>0:
             examples = norm_counts.obs.index[zerocells]
             if zerocells.sum()>100:
-                print('Error: %d cells have zero counts of overdispersed genes. Printing first 100: %s' % (zerocells.sum(), ', '.join(examples[:100])))
+                raise Exception('Error: %d cells have zero counts of overdispersed genes. Printing first 100: %s' % (zerocells.sum(), ', '.join(examples[:100])))
             else:
-                print('Error: %d cells have zero counts of overdispersed genes: %s' % (zerocells.sum(), ', '.join(examples)))
-                
-            sys.exit('Consensus step cannot run when this is the case')
-        
+                raise Exception('Error: %d cells have zero counts of overdispersed genes: %s' % (zerocells.sum(), ', '.join(examples)))
+            
         return(norm_counts)
 
     
