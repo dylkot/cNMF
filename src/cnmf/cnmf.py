@@ -800,7 +800,8 @@ class cNMF():
         rf_pred_norm_counts = rf_usages.dot(median_spectra)
         
         # Re-order usage by total contribution
-        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)      
+        rf_usages_sum = rf_usages.sum(axis=1)
+        norm_usages = rf_usages.div(np.where(rf_usages_sum != 0, rf_usages_sum, 1), axis=0)
         reorder = norm_usages.sum(axis=0).sort_values(ascending=False)
         rf_usages = rf_usages.loc[:, reorder.index]
         norm_usages = norm_usages.loc[:, reorder.index]
@@ -828,7 +829,8 @@ class cNMF():
         tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
         spectra_tpm = self.refit_spectra(tpm.X, norm_usages.astype(tpm.X.dtype))
         spectra_tpm = pd.DataFrame(spectra_tpm, index=rf_usages.columns, columns=tpm.var.index)
-        spectra_tpm = spectra_tpm.div(spectra_tpm.sum(axis=1), axis=0) * 1e6
+        spectra_tpm_sum = spectra_tpm.sum(axis=1)
+        spectra_tpm = spectra_tpm.div(np.where(spectra_tpm_sum != 0, spectra_tpm_sum, 1), axis=0) * 1e6
         
         # Convert spectra to Z-score units, and obtain results for all genes by running last step of NMF
         # with usages fixed and Z-scored TPM as the input matrix
