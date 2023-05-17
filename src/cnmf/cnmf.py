@@ -776,12 +776,16 @@ class cNMF():
             density_filter = local_density.iloc[:, 0] < density_threshold
             l2_spectra = l2_spectra.loc[density_filter, :]
 
-        kmeans_model = KMeans(n_clusters=k, n_init=10, random_state=1)
-        kmeans_model.fit(l2_spectra)
-        kmeans_cluster_labels = pd.Series(kmeans_model.labels_+1, index=l2_spectra.index)
+        if k <= l2_spectra.shape[0]:
+            # no reason to cluster, we have more clusters than samples
+            median_spectra = l2_spectra
+        else:
+            kmeans_model = KMeans(n_clusters=k, n_init=10, random_state=1)
+            kmeans_model.fit(l2_spectra)
+            kmeans_cluster_labels = pd.Series(kmeans_model.labels_+1, index=l2_spectra.index)
 
-        # Find median usage for each gene across cluster
-        median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
+            # Find median usage for each gene across cluster
+            median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
 
         # Normalize median spectra to probability distributions.
         median_spectra = (median_spectra.T/median_spectra.sum(1)).T
