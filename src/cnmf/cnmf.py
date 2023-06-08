@@ -775,6 +775,8 @@ class cNMF():
 
             density_filter = local_density.iloc[:, 0] < density_threshold
             l2_spectra = l2_spectra.loc[density_filter, :]
+            if l2_spectra.shape[0] == 0:
+                raise RuntimeError("Zero components remain after density filtering. Consider increasing density threshold")
 
         if k <= l2_spectra.shape[0]:
             # no reason to cluster, we have more clusters than samples
