@@ -790,8 +790,8 @@ class cNMF():
             # Compute the silhouette score
             stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
-            # Find median usage for each gene across cluster
-            median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
+        # Find median usage for each gene across cluster
+        median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
 
         # Normalize median spectra to probability distributions.
         median_spectra = (median_spectra.T/median_spectra.sum(1)).T
