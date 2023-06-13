@@ -775,10 +775,20 @@ class cNMF():
 
             density_filter = local_density.iloc[:, 0] < density_threshold
             l2_spectra = l2_spectra.loc[density_filter, :]
+            if l2_spectra.shape[0] == 0:
+                raise RuntimeError("Zero components remain after density filtering. Consider increasing density threshold")
 
-        kmeans_model = KMeans(n_clusters=k, n_init=10, random_state=1)
-        kmeans_model.fit(l2_spectra)
-        kmeans_cluster_labels = pd.Series(kmeans_model.labels_+1, index=l2_spectra.index)
+        if k > l2_spectra.shape[0]:
+            # no reason to cluster, we have more clusters than samples
+            kmeans_cluster_labels = pd.Series(np.arange(l2_spectra.shape[0]) + 1, index=l2_spectra.index)
+            # by definition, the stability score is zero
+            stability = 0
+        else:
+            kmeans_model = KMeans(n_clusters=k, n_init=10, random_state=1)
+            kmeans_model.fit(l2_spectra)
+            kmeans_cluster_labels = pd.Series(kmeans_model.labels_+1, index=l2_spectra.index)
+            # Compute the silhouette score
+            stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
         # Find median usage for each gene across cluster
         median_spectra = l2_spectra.groupby(kmeans_cluster_labels).median()
@@ -786,16 +796,14 @@ class cNMF():
         # Normalize median spectra to probability distributions.
         median_spectra = (median_spectra.T/median_spectra.sum(1)).T
 
-        # Compute the silhouette score
-        stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
-
         # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
         rf_usages = self.refit_usage(norm_counts.X, median_spectra)
         rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)        
         rf_pred_norm_counts = rf_usages.dot(median_spectra)
         
         # Re-order usage by total contribution
-        norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)      
+        rf_usages_sum = rf_usages.sum(axis=1)
+        norm_usages = rf_usages.div(np.where(rf_usages_sum != 0, rf_usages_sum, 1), axis=0)
         reorder = norm_usages.sum(axis=0).sort_values(ascending=False)
         rf_usages = rf_usages.loc[:, reorder.index]
         norm_usages = norm_usages.loc[:, reorder.index]
@@ -823,7 +831,8 @@ class cNMF():
         tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
         spectra_tpm = self.refit_spectra(tpm.X, norm_usages.astype(tpm.X.dtype))
         spectra_tpm = pd.DataFrame(spectra_tpm, index=rf_usages.columns, columns=tpm.var.index)
-        spectra_tpm = spectra_tpm.div(spectra_tpm.sum(axis=1), axis=0) * 1e6
+        spectra_tpm_sum = spectra_tpm.sum(axis=1)
+        spectra_tpm = spectra_tpm.div(np.where(spectra_tpm_sum != 0, spectra_tpm_sum, 1), axis=0) * 1e6
         
         # Convert spectra to Z-score units, and obtain results for all genes by running last step of NMF
         # with usages fixed and Z-scored TPM as the input matrix
