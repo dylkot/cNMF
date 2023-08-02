@@ -203,6 +203,7 @@ See the tutorials for some subsequent analysis steps that could be used to analy
 ### New in version 1.5
 - Fixed bug in detecting and printing cells with 0 counts of overdispersed genes
 - Added option in load_results() to return normalized or unnormalized usage.
+- Added a Preprocess class to batch correct data prior to cNMF. See the added Tutorial analyze_batcheffectcorrect_BaronEtAl.ipynb to illustrate its basic usage.
 
 ### New in version 1.4
 - Usage is re-fit a final time from gene_spectra_tpm which increases accuracy in simulations
