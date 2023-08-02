@@ -185,8 +185,12 @@ class Preprocess():
         adata_RNA : AnnData
             Normalized RNA data subsetted to high-variance genes, optionally batch corrected
             
-        adata_ADT : AnnData
-            Raw or normalized ADT data
+        tp10k : AnnData
+            Normalized ADT data containing all genes. If ADT data is included, RNA and ADT
+            are library size normalized separately
+            
+        hvg : list
+            List of high variance genes that can be used as input for cNMF
         """
         
         if (not isinstance(_adata, Collection)) and (feature_type_col is not None):
@@ -223,7 +227,7 @@ class Preprocess():
             adata_ADT = adata_ADT[adata_RNA.obs.index, :]
             sc.pp.normalize_per_cell(adata_ADT, counts_per_cell_after=librarysize_targetsum)
             
-            merge_var = pd.concat([tp10k.var[[feature_type_col]], adata_ADT.var[[feature_type_col]]], axis=0)            
+            merge_var = pd.concat([tp10k.var, adata_ADT.var], axis=0)            
             tp10k = sc.AnnData(hstack((tp10k.X, adata_ADT.X)), obs=tp10k.obs, var=merge_var)
             del(adata_ADT)
             
