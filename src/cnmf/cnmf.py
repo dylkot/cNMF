@@ -787,7 +787,10 @@ class cNMF():
         median_spectra = (median_spectra.T/median_spectra.sum(1)).T
 
         # Compute the silhouette score
-        stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
+        if len(np.unique(kmeans_cluster_labels)) == len(kmeans_cluster_labels):
+            stability = 0
+        else:
+            stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
 
         # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
         rf_usages = self.refit_usage(norm_counts.X, median_spectra)
