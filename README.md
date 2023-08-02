@@ -6,6 +6,9 @@ cNMF is an analysis pipeline for inferring gene expression programs from single-
 
 It takes a count matrix (N cells X G genes) as input and produces a (K x G) matrix of gene expression programs (GEPs) and a (N x K) matrix specifying the usage of each program for each cell in the data. You can read more about the method in the publication [here] and check out examples on [simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMCs](Tutorials/analyze_pbmc_example_data.ipynb).
 
+# Updates from v1.4
+We  added a Preprocess class to batch correct data prior to cNMF. It uses an adaptation of the Harmony. See the added Tutorial analyze_batcheffectcorrect_BaronEtAl.ipynb to illustrate its basic usage.
+
 # Installation
 We recommend creating a [conda](https://conda.io/miniconda.html) environment to install the required packages for cNMF. After installing and configuring conda, you can create an environment for the cNMF workflow using the commands below.
 
