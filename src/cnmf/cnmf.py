@@ -711,7 +711,7 @@ class cNMF():
 
     def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = True,
                   skip_density_and_return_after_stats = False, close_clustergram_fig=False,
-                  refit_usage=True, normalize_tpm_spectra=False):
+                  refit_usage=True, normalize_tpm_spectra=False, norm_counts=None):
         """
         Obtain consensus estimates of spectra and usages from a cNMF run and output a clustergram of
         the consensus matrix. Assumes prepare, factorize, and combine steps have already been run.
@@ -747,11 +747,16 @@ class cNMF():
             If True, renormalizes the tpm_spectra to sum to 1e6 for each program. This is done before refitting usages.
             If not used, the tpm_spectra are exactly as calcuated when refitting the usage matrix against the tpm matrix
             and typically will not sum to the same value for each program.
+            
+        norm_counts : AnnData (default=None)
+            Speed up calculation of k_selection_plot by avoiding reloading norm_counts for each K. Should not be used by
+            most users
         """
         
         
         merged_spectra = load_df_from_npz(self.paths['merged_spectra']%k)
-        norm_counts = sc.read(self.paths['normalized_counts'])
+        if norm_counts is None:
+            norm_counts = sc.read(self.paths['normalized_counts'])
 
         density_threshold_str = str(density_threshold)
         if skip_density_and_return_after_stats:
@@ -795,8 +800,16 @@ class cNMF():
         median_spectra = (median_spectra.T/median_spectra.sum(1)).T
 
         # Compute the silhouette score
-        stability = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
+        silhouette = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
+        
+        ######################### TESTING #########################
+        #nrep = int(l2_spectra.shape[0]/k)
+        #stability2 = sum(np.all( np.sort(kmeans_cluster_labels.values.reshape((nrep,k)),axis=1) \
+        #== np.array(range(k))+1, axis=1)) / nrep
+        stability2 = None
+        ######################### TESTING #########################
 
+        
         # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
         rf_usages = self.refit_usage(norm_counts.X, median_spectra)
         rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)        
@@ -818,8 +831,8 @@ class cNMF():
         else:
             prediction_error = ((norm_counts.X - rf_pred_norm_counts)**2).sum().sum()
         
-        consensus_stats = pd.DataFrame([k, density_threshold, stability, prediction_error],
-                    index = ['k', 'local_density_threshold', 'stability', 'prediction_error'],
+        consensus_stats = pd.DataFrame([k, density_threshold, silhouette, stability2, prediction_error],
+                    index = ['k', 'local_density_threshold', 'silhouette', 'stability2', 'prediction_error'],
                     columns = ['stats'])
 
         if skip_density_and_return_after_stats:
@@ -972,10 +985,11 @@ class cNMF():
         '''
         run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         stats = []
+        norm_counts = sc.read(self.paths['normalized_counts'])
         for k in sorted(set(run_params.n_components)):
-
             stats.append(self.consensus(k, skip_density_and_return_after_stats=True,
-                                        show_clustering=False, close_clustergram_fig=True).stats)
+                                        show_clustering=False, close_clustergram_fig=True,
+                                        norm_counts=norm_counts).stats)
 
         stats = pd.DataFrame(stats)
         stats.reset_index(drop = True, inplace = True)
@@ -987,7 +1001,7 @@ class cNMF():
         ax2 = ax1.twinx()
 
 
-        ax1.plot(stats.k, stats.stability, 'o-', color='b')
+        ax1.plot(stats.k, stats.silhouette, 'o-', color='b')
         ax1.set_ylabel('Stability', color='b', fontsize=15)
         for tl in ax1.get_yticklabels():
             tl.set_color('b')
