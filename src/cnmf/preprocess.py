@@ -306,12 +306,10 @@ class Preprocess():
             if not normalize_librarysize:
                 del(anorm)
                 _adata.X, _adata.obsm['X_pca_harmony'] = self.harmony_correct_X(_adata.X.todense(), _adata.obs, _adata.obsm['X_pca'],
-                                                                                            harmony_vars, quantile_thresh = .9999,
-                                                                                            theta=theta, makeplots=makeplots)
+                                                                                            harmony_vars)
             else:
                 _adata.X, _adata.obsm['X_pca_harmony'] = self.harmony_correct_X(anorm.X.todense(), anorm.obs, anorm.obsm['X_pca'],
-                                                                                            harmony_vars, quantile_thresh = .9999,
-                                                                                            theta=theta, makeplots=makeplots)                
+                                                                                            harmony_vars)                
                 
         else:
             if normalize_librarysize:
@@ -329,9 +327,9 @@ class Preprocess():
             
 
         
-    def harmony_correct_X(self, X, obs, pca, harmony_vars, quantile_thresh = .9999, theta=1, makeplots=True):
+    def harmony_correct_X(self, X, obs, pca, harmony_vars, theta=1):
         """
-        Runs batch correction on the provided AnnData object. Specifically it uses
+        Runs batch correction on the provided data. Specifically it uses
         Harmony to learn the batch correction parameters but rather than just correcting
         the PCs, it applies the MOE ridge correction to normalized counts data.
         
@@ -341,24 +339,26 @@ class Preprocess():
         Parameters
         ----------
 
-        adata : AnnData
-            Normalized input data. It must contain raw count data in adata.raw
+        X : array-like
             
-        harmony_vars : String or list of strings
-            The variables contained in adata.obs to use for Harmony correction
+        obs : panda.DataFrame
+            Must include the columns specified in harmony_vars
     
-        quantile_thresh : float, optional (default=.9999)
+        pca : array-like
             If provided, sets a ceiling on this quantile after variance scaling genes. I.e. calculates this quantile value
             and sets a ceiling on this value. This can prevent outlier genes from obtaining disproportionately high values
     
-        makeplots : boolean, optional (default=True)
-            If True, makes a scatter plot of values pre and post correction
+        harmony_vars : list
+            List of columns included in the obs DataFrame to use for correction
             
         Returns
         ----------
-        adata_corrected : AnnData
-            Analogous to the adata input but with adata.X containing batch corrected data
-        
+        X_corr : array-like
+            Corrected input data
+ 
+         X_pca_harmony : array-like
+            Corrected PCs
+ 
         """   
             
         harmony_res = harmonypy.run_harmony(pca, obs, harmony_vars, max_iter_harmony = 20, theta=theta)
