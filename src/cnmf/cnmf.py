@@ -1029,8 +1029,9 @@ class cNMF():
         Returns
         ----------
         usage - cNMF usages (cells X K)
-        spectra - Z-score regressed coeffecients for each program (K x genes) with higher values cooresponding
+        spectra_scores - Z-score coeffecients for each program (K x genes) with high values cooresponding
                     to better marker genes
+        spectra_tpm - Coeffecients for contribution of each gene to each program (K x genes) in TPM units
         top_genes - ranked list of marker genes per GEP (n_top_genes X K)
         """
         scorefn = self.paths['gene_spectra_score__txt'] % (K, str(density_threshold).replace('.', '_'))
