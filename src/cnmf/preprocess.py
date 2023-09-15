@@ -5,7 +5,7 @@ import harmonypy
 from collections.abc import Collection
 from sklearn.feature_selection import mutual_info_classif
 import pandas as pd
-from scipy.sparse import hstack
+from scipy.sparse import hstack, issparse
 
 def moe_correct_ridge(Z_orig, Z_cos, Z_corr, R, W, K, Phi_Rk, Phi_moe, lamb):
     Z_corr = Z_orig.copy()
@@ -22,7 +22,11 @@ def moe_correct_ridge(Z_orig, Z_cos, Z_corr, R, W, K, Phi_Rk, Phi_moe, lamb):
 def stdscale_quantile_celing(_adata, max_value=None, quantile_thresh=None):
     sc.pp.scale(_adata, zero_center=False, max_value=max_value)    
     if quantile_thresh is not None:
-        threshval = np.quantile(np.array(_adata.X.todense()).reshape(-1), quantile_thresh)
+        if issparse(_adata.X):
+            threshval = np.quantile(np.array(_adata.X.todense()).reshape(-1), quantile_thresh)
+        else:
+            threshval = np.quantile(_adata.X.reshape(-1), quantile_thresh)
+            
         _adata.X[_adata.X > threshval] = threshval        
         
 def make_count_hist(adata, num_cells=1000):
@@ -332,9 +336,6 @@ class Preprocess():
         Runs batch correction on the provided data. Specifically it uses
         Harmony to learn the batch correction parameters but rather than just correcting
         the PCs, it applies the MOE ridge correction to normalized counts data.
-        
-        It uses library-sized var-normed data to learn the PC correction but then corrects
-        non library-sized normed data. Therefore, the raw counts data must be stored in adata.raw
 
         Parameters
         ----------
@@ -379,9 +380,6 @@ class Preprocess():
         Runs batch correction on the self.adata_RNA object. Specifically it uses
         Harmony to learn the batch correction parameters but rather than just correcting
         the PCs, it applies the MOE ridge correction to normalized counts data.
-        
-        It uses library-sized var-normed data to learn the PC correction but then corrects
-        non library-sized normed data. Therefore, the raw counts data must be stored in adata.raw
 
         Parameters
         ----------
