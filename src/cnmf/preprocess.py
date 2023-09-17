@@ -396,7 +396,12 @@ class Preprocess():
         """
         sc.pp.normalize_per_cell(_adata)  
         stdscale_quantile_celing(_adata, max_value=max_scaled_thresh, quantile_thresh=quantile_thresh)
-        res = mutual_info_classif(_adata.X.toarray(), cluster, discrete_features='auto',
+
+        if issparse(_adata.X):        
+            res = mutual_info_classif(_adata.X.toarray(), cluster, discrete_features='auto',
+                    n_neighbors=3, copy=True, random_state=None)
+        else:
+            res = mutual_info_classif(_adata.X, cluster, discrete_features='auto',
                     n_neighbors=3, copy=True, random_state=None)
         
         res = pd.Series(res, index=_adata.var.index)
