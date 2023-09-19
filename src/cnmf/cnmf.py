@@ -798,22 +798,33 @@ class cNMF():
 
         # Normalize median spectra to probability distributions.
         median_spectra = (median_spectra.T/median_spectra.sum(1)).T
-
-        # Compute the silhouette score
-        silhouette = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
-        
-        ######################### TESTING #########################
-        #nrep = int(l2_spectra.shape[0]/k)
-        #stability2 = sum(np.all( np.sort(kmeans_cluster_labels.values.reshape((nrep,k)),axis=1) \
-        #== np.array(range(k))+1, axis=1)) / nrep
-        stability2 = None
-        ######################### TESTING #########################
-
         
         # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
         rf_usages = self.refit_usage(norm_counts.X, median_spectra)
         rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)        
-        rf_pred_norm_counts = rf_usages.dot(median_spectra)
+        
+        ######################### TESTING #########################
+        if skip_density_and_return_after_stats:
+            nrep = int(merged_spectra.shape[0]/k)
+            stability2 = sum(np.all( np.sort(kmeans_cluster_labels.values.reshape((nrep,k)),axis=1) \
+            == np.array(range(k))+1, axis=1)) / nrep
+    
+            # Compute the silhouette score
+            silhouette = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
+            
+            # Compute prediction error as a frobenius norm
+            rf_pred_norm_counts = rf_usages.dot(median_spectra)        
+            if sp.issparse(norm_counts.X):
+                prediction_error = ((norm_counts.X.todense() - rf_pred_norm_counts)**2).sum().sum()
+            else:
+                prediction_error = ((norm_counts.X - rf_pred_norm_counts)**2).sum().sum()    
+                
+            consensus_stats = pd.DataFrame([k, density_threshold, silhouette, stability2, prediction_error],
+                    index = ['k', 'local_density_threshold', 'silhouette', 'stability2', 'prediction_error'],
+                    columns = ['stats'])
+
+            return(consensus_stats)           
+        ######################### TESTING #########################
         
         # Re-order usage by total contribution
         norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)      
@@ -824,19 +835,6 @@ class cNMF():
         rf_usages.columns = np.arange(1, rf_usages.shape[1]+1)
         norm_usages.columns = rf_usages.columns
         median_spectra.index = rf_usages.columns
-
-        # Compute prediction error as a frobenius norm
-        if sp.issparse(norm_counts.X):
-            prediction_error = ((norm_counts.X.todense() - rf_pred_norm_counts)**2).sum().sum()
-        else:
-            prediction_error = ((norm_counts.X - rf_pred_norm_counts)**2).sum().sum()
-        
-        consensus_stats = pd.DataFrame([k, density_threshold, silhouette, stability2, prediction_error],
-                    index = ['k', 'local_density_threshold', 'silhouette', 'stability2', 'prediction_error'],
-                    columns = ['stats'])
-
-        if skip_density_and_return_after_stats:
-            return consensus_stats
         
         # Convert spectra to TPM units, and obtain results for all genes by running last step of NMF
         # with usages fixed and TPM as the input matrix
@@ -870,12 +868,12 @@ class cNMF():
             spectra_tpm_rf = spectra_tpm.loc[:,hvgs]
 
             spectra_tpm_rf = spectra_tpm_rf.div(tpm_stats.loc[hvgs, '__std'], axis=1)
-            rf_usages = self.refit_usage(norm_tpm.X, spectra_tpm_rf)
+            rf_usages = self.refit_usage(norm_tpm.X, spectra_tpm_rf.astype(norm_tpm.X.dtype))
             rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=spectra_tpm_rf.index)                                                                  
                
         save_df_to_npz(median_spectra, self.paths['consensus_spectra']%(k, density_threshold_repl))
         save_df_to_npz(rf_usages, self.paths['consensus_usages']%(k, density_threshold_repl))
-        save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
+        #save_df_to_npz(consensus_stats, self.paths['consensus_stats']%(k, density_threshold_repl))
         save_df_to_text(median_spectra, self.paths['consensus_spectra__txt']%(k, density_threshold_repl))
         save_df_to_text(rf_usages, self.paths['consensus_usages__txt']%(k, density_threshold_repl))
         save_df_to_npz(spectra_tpm, self.paths['gene_spectra_tpm']%(k, density_threshold_repl))
