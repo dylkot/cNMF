@@ -803,13 +803,7 @@ class cNMF():
         rf_usages = self.refit_usage(norm_counts.X, median_spectra)
         rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)        
         
-        ######################### TESTING #########################
         if skip_density_and_return_after_stats:
-            nrep = int(merged_spectra.shape[0]/k)
-            stability2 = sum(np.all( np.sort(kmeans_cluster_labels.values.reshape((nrep,k)),axis=1) \
-            == np.array(range(k))+1, axis=1)) / nrep
-    
-            # Compute the silhouette score
             silhouette = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
             
             # Compute prediction error as a frobenius norm
@@ -824,7 +818,6 @@ class cNMF():
                     columns = ['stats'])
 
             return(consensus_stats)           
-        ######################### TESTING #########################
         
         # Re-order usage by total contribution
         norm_usages = rf_usages.div(rf_usages.sum(axis=1), axis=0)      
