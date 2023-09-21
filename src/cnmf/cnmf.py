@@ -813,8 +813,8 @@ class cNMF():
             else:
                 prediction_error = ((norm_counts.X - rf_pred_norm_counts)**2).sum().sum()    
                 
-            consensus_stats = pd.DataFrame([k, density_threshold, silhouette, stability2, prediction_error],
-                    index = ['k', 'local_density_threshold', 'silhouette', 'stability2', 'prediction_error'],
+            consensus_stats = pd.DataFrame([k, density_threshold, silhouette,  prediction_error],
+                    index = ['k', 'local_density_threshold', 'silhouette', 'prediction_error'],
                     columns = ['stats'])
 
             return(consensus_stats)           
