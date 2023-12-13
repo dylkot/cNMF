@@ -469,9 +469,8 @@ class cNMF():
         ## Check for any cells that have 0 counts of the overdispersed genes
         zerocells = norm_counts.X.sum(axis=1)==0
         if zerocells.sum()>0:
-            examples = norm_counts.obs.index[zerocells]
-            print('Warning: %d cells have zero counts of overdispersed genes. E.g. %s' % (zerocells.sum(), examples[0]))
-            print('Consensus step may not run when this is the case')
+            examples = norm_counts.obs.index[np.ravel(zerocells)]
+            raise Exception('Error: %d cells have zero counts of overdispersed genes. E.g. %s. Filter those cells and re-run or adjust the number of overdispersed genes. Quitting!' % (zerocells.sum(), ', '.join(examples[:4])))
         
         return(norm_counts)
 
