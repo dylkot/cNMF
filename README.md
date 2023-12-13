@@ -1,4 +1,4 @@
-# Consensus Non-negative Matrix factorization (cNMF) v1.4
+# Consensus Non-negative Matrix factorization (cNMF) v1.4.1
 
 <img src="https://storage.googleapis.com/sabeti-public/dkotliar/elife-cNMF-fig1.jpg" height="650" />
 
@@ -202,6 +202,7 @@ See the tutorials for some subsequent analysis steps that could be used to analy
 - Use cnmf_obj.load_results(K=_, density_threshold=_) to obtain usage, spectra_scores, spectra_tpm, and top_genes matrices
 - cnmf_obj.combine() now has a skip_missing_files=True/False option to skip incomplete factorize iterations
 - GEPs are now ordered by maximum total usage
+- Now detects and errors when 0 counts of HVGs with interpretable error message
 
 ### New in version 1.3
 - Installation via pip
