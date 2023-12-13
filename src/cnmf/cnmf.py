@@ -469,12 +469,9 @@ class cNMF():
         ## Check for any cells that have 0 counts of the overdispersed genes
         zerocells = np.array(norm_counts.X.sum(axis=1)==0).reshape(-1)
         if zerocells.sum()>0:
-            examples = norm_counts.obs.index[zerocells]
-            if zerocells.sum()>100:
-                raise Exception('Error: %d cells have zero counts of overdispersed genes. Printing first 100: %s' % (zerocells.sum(), ', '.join(examples[:100])))
-            else:
-                raise Exception('Error: %d cells have zero counts of overdispersed genes: %s' % (zerocells.sum(), ', '.join(examples)))
-            
+            examples = norm_counts.obs.index[np.ravel(zerocells)]
+            raise Exception('Error: %d cells have zero counts of overdispersed genes. E.g. %s. Filter those cells and re-run or adjust the number of overdispersed genes. Quitting!' % (zerocells.sum(), ', '.join(examples[:4])))
+        
         return(norm_counts)
 
     
@@ -788,6 +785,8 @@ class cNMF():
 
             density_filter = local_density.iloc[:, 0] < density_threshold
             l2_spectra = l2_spectra.loc[density_filter, :]
+            if l2_spectra.shape[0] == 0:
+                raise RuntimeError("Zero components remain after density filtering. Consider increasing density threshold")
 
         kmeans_model = KMeans(n_clusters=k, n_init=10, random_state=1)
         kmeans_model.fit(l2_spectra)
@@ -798,7 +797,7 @@ class cNMF():
 
         # Normalize median spectra to probability distributions.
         median_spectra = (median_spectra.T/median_spectra.sum(1)).T
-        
+
         # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
         rf_usages = self.refit_usage(norm_counts.X, median_spectra)
         rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)        
