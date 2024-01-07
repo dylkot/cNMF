@@ -136,7 +136,7 @@ class Preprocess():
     def preprocess_for_cnmf(self, _adata, feature_type_col = None, adt_feature_name = 'Antibody Capture',
                             harmony_vars= None, n_top_rna_genes = 2000, librarysize_targetsum= 1e4,
                             max_scaled_thresh = None, quantile_thresh = .9999, makeplots=True, theta=1,
-                            save_output_base=None):
+                            save_output_base=None, max_iter_harmony=20):
         """
         Runs minimal preprocessing for cNMF, specifically preparing an HVG filtered, normalized, optionally batch corrected, output file
         from the RNA to use as counts input for cNMF as well as a library-size normalized file potentially including both RNA and ADT to
@@ -176,6 +176,9 @@ class Preprocess():
         makeplots : boolean (default=True)
         
         theta : float (default=1)
+        
+        max_iter_harmony : int (default=20)
+            Maximum number of Harmony iterations to use
         
         save_output_base : str (default=None)
             If provided, saves output variables to disk with the following paths
@@ -248,7 +251,8 @@ class Preprocess():
     def normalize_batchcorrect(self, _adata, normalize_librarysize=False,
                                harmony_vars=None, n_top_genes = None,
                                librarysize_targetsum= 1e4, max_scaled_thresh = None,
-                               quantile_thresh = .9999, theta=1, makeplots=True):
+                               quantile_thresh = .9999, theta=1, makeplots=True,
+                               max_iter_harmony=20):
         """
         Normalizes, filters high-variance genes, and optionally batch corrects an AnnData object containing a
         single data modality
@@ -283,6 +287,9 @@ class Preprocess():
     
         makeplots : boolean, optional (default=True)
             If provided, makes a histogram of quantile thresholded count distribution
+            
+        max_iter_harmony : int, optional (default=20)
+            Maximum number of Harmony iterations to use
         """    
                 
         if n_top_genes is not None:
@@ -310,10 +317,10 @@ class Preprocess():
             if not normalize_librarysize:
                 del(anorm)
                 _adata.X, _adata.obsm['X_pca_harmony'] = self.harmony_correct_X(_adata.X.todense(), _adata.obs, _adata.obsm['X_pca'],
-                                                                                            harmony_vars)
+                                                                                harmony_vars, max_iter_harmony=max_iter_harmony)
             else:
                 _adata.X, _adata.obsm['X_pca_harmony'] = self.harmony_correct_X(anorm.X.todense(), anorm.obs, anorm.obsm['X_pca'],
-                                                                                            harmony_vars)                
+                                                                                harmony_vars, max_iter_harmony=max_iter_harmony) 
                 
         else:
             if normalize_librarysize:
@@ -331,7 +338,7 @@ class Preprocess():
             
 
         
-    def harmony_correct_X(self, X, obs, pca, harmony_vars, theta=1):
+    def harmony_correct_X(self, X, obs, pca, harmony_vars, theta=1, max_iter_harmony=20):
         """
         Runs batch correction on the provided data. Specifically it uses
         Harmony to learn the batch correction parameters but rather than just correcting
@@ -362,7 +369,8 @@ class Preprocess():
  
         """   
             
-        harmony_res = harmonypy.run_harmony(pca, obs, harmony_vars, max_iter_harmony = 20, theta=theta)
+        harmony_res = harmonypy.run_harmony(pca, obs, harmony_vars, max_iter_harmony = max_iter_harmony,
+                                            theta=theta)
         
         X_pca_harmony = harmony_res.Z_corr.T       
         _, X_corr, _, _ = moe_correct_ridge(X.T, None, None, harmony_res.R, None, harmony_res.K,
