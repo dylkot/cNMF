@@ -1,7 +1,6 @@
 import scanpy as sc
 import numpy as np
 import matplotlib.pyplot as plt
-import harmonypy
 from collections.abc import Collection
 from sklearn.feature_selection import mutual_info_classif
 import pandas as pd
@@ -290,7 +289,12 @@ class Preprocess():
             
         max_iter_harmony : int, optional (default=20)
             Maximum number of Harmony iterations to use
-        """    
+        """  
+        
+        try:
+            import harmonypy
+        except:
+            raise ImportError("harmonypy is not installed. Please install it using 'pip install harmonypy' before proceeding.")
                 
         if n_top_genes is not None:
             sc.pp.highly_variable_genes(_adata, flavor='seurat_v3', n_top_genes=n_top_genes)
