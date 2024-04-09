@@ -1,16 +1,22 @@
 # Consensus Non-negative Matrix factorization (cNMF) v1.5
 
-<img src="https://storage.googleapis.com/sabeti-public/dkotliar/elife-cNMF-fig1.jpg" height="650" />
+<img src="https://storage.googleapis.com/sabeti-public/dkotliar/elife-cNMF-fig1.jpg" style="height: 800px;" />
 
-cNMF is an analysis pipeline for inferring gene expression programs from single-cell RNA-Seq (scRNA-Seq) data.
+cNMF is a pipeline for inferring gene expression programs from scRNA-Seq
 
-It takes a count matrix (N cells X G genes) as input and produces a (K x G) matrix of gene expression programs (GEPs) and a (N x K) matrix specifying the usage of each program for each cell in the data. You can read more about the method in the publication [here] and check out examples on [simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMCs](Tutorials/analyze_pbmc_example_data.ipynb).
+It takes a count matrix (N cells X G genes) as input and produces a (K x G) matrix of gene expression programs (GEPs) and a (N x K) matrix specifying the usage of each program for each cell in the data.
 
-# Updates from v1.4
-We  added a Preprocess class to batch correct data prior to cNMF. It uses an adaptation of the Harmony. See the added Tutorial analyze_batcheffectcorrect_BaronEtAl.ipynb to illustrate its basic usage.
+Read more about the method in the [publication](https://elifesciences.org/articles/43803) and check out examples on [simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMCs](Tutorials/analyze_pbmc_example_data.ipynb).
 
 # Installation
-We recommend creating a [conda](https://conda.io/miniconda.html) environment to install the required packages for cNMF. After installing and configuring conda, you can create an environment for the cNMF workflow using the commands below.
+cNMF has been tested with Python version 3.7 and requires scikit-learn>=1.0 and scanpy>=1.8
+
+It can be installed using [pip](https://pypi.org/) as follows:
+```
+pip install cnmf
+```
+
+We recommend creating a [conda](https://conda.io/miniconda.html) environment to manage the required packages for cNMF. It can be created like below:
 
 ```
 conda update -yn base conda
@@ -24,23 +30,19 @@ conda install --yes jupyterlab && conda clean --yes --all
 
 Now you can run cNMF as long as the cnmv_enf environment is activated with the `conda activate cnmf_env` command
 
-Alternatively, if you already have all of the required packages installed, you can just run:
-
-```
-pip install cnmf
-```
-
-but note the requirement for scikit-learn version beyond 1.0 and scanpy.
-
 # Running cNMF
 
 cNMF can be run from the command line without any parallelization using the example commands below:
 
 ```
 cnmf prepare --output-dir ./example_data --name example_cNMF -c ./example_data/counts_prefiltered.txt -k 5 6 7 8 9 10 11 12 13 --n-iter 100 --seed 14
+
 cnmf factorize --output-dir ./example_data --name example_cNMF --worker-index 0 --total-workers 1
+
 cnmf combine --output-dir ./example_data --name example_cNMF
+
 cnmf k_selection_plot --output-dir ./example_data --name example_cNMF
+
 cnmf consensus --output-dir ./example_data --name example_cNMF --components 10 --local-density-threshold 0.01 --show-clustering
 ```
 
