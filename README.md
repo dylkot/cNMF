@@ -1,4 +1,4 @@
-# Consensus Non-negative Matrix factorization (cNMF) v1.5
+# Consensus NMF (cNMF)
 
 <img src="https://storage.googleapis.com/sabeti-public/dkotliar/elife-cNMF-fig1.jpg" style="height: 800px;" />
 
@@ -16,7 +16,7 @@ It can be installed using [pip](https://pypi.org/) as follows:
 pip install cnmf
 ```
 
-We recommend creating a [conda](https://conda.io/miniconda.html) environment to manage the required packages for cNMF. It can be created like below:
+We recommend creating a [conda](https://conda.io/miniconda.html) environment to manage the required packages for cNMF. It can be created as follows:
 
 ```
 conda update -yn base conda
