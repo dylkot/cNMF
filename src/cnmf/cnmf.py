@@ -183,10 +183,7 @@ def compute_tpm(input_counts):
     Default TPM normalization
     """
     tpm = input_counts.copy()
-    if np.issubdtype(tpm.X.dtype, np.integer):
-        tpm.X = tpm.X.astype(np.float64)
-    
-    sc.pp.normalize_per_cell(tpm, counts_per_cell_after=1e6)
+    sc.pp.normalize_total(tpm, target_sum=1e6)
     return(tpm)
 
 
