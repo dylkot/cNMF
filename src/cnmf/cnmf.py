@@ -268,7 +268,7 @@ class cNMF():
 
     def prepare(self, counts_fn, components, n_iter = 100, densify=False, tpm_fn=None, seed=None,
                         beta_loss='frobenius',num_highvar_genes=2000, genes_file=None,
-                        alpha_usage=0.0, alpha_spectra=0.0, init='random'):
+                        alpha_usage=0.0, alpha_spectra=0.0, init='random', max_NMF_iter=1000):
         """
         Load input counts, reduce to high-variance genes, and variance normalize genes.
         Prepare file for distributing jobs over workers.
@@ -308,6 +308,9 @@ class cNMF():
 
         alpha_spectra : float, optional (default=0.0)
             Regularization parameter for NMF corresponding to alpha_H in scikit-learn
+
+        max_NMF_iter : int, optional (default=1000)
+            Maximum number of iterations per individual NMF run
         """
         
         
@@ -379,7 +382,7 @@ class cNMF():
         self.save_norm_counts(norm_counts)
         (replicate_params, run_params) = self.get_nmf_iter_params(ks=components, n_iter=n_iter, random_state_seed=seed,
                                                                   beta_loss=beta_loss, alpha_usage=alpha_usage,
-                                                                  alpha_spectra=alpha_spectra, init=init)
+                                                                  alpha_spectra=alpha_spectra, init=init, max_iter=max_NMF_iter)
         self.save_nmf_iter_params(replicate_params, run_params)
         
     
@@ -487,7 +490,7 @@ class cNMF():
                                random_state_seed = None,
                                beta_loss = 'kullback-leibler',
                                alpha_usage=0.0, alpha_spectra=0.0,
-                               init='random'):
+                               init='random', max_iter=1000):
         """
         Create a DataFrame with parameters for NMF iterations.
 
@@ -535,7 +538,7 @@ class cNMF():
                         beta_loss=beta_loss,
                         solver='mu',
                         tol=1e-4,
-                        max_iter=1000,
+                        max_iter=max_iter,
                         init=init
                         )
         
@@ -1102,21 +1105,22 @@ def main():
     parser.add_argument('--genes-file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
     parser.add_argument('--numgenes', type=int, help='[prepare] Number of high variance genes to use for matrix factorization.', default=2000)
     parser.add_argument('--tpm', type=str, help='[prepare] Pre-computed (cell x gene) TPM values as df.npz or tab separated txt file. If not provided TPM will be calculated automatically', default=None)
-    parser.add_argument('--beta-loss', type=str, choices=['frobenius', 'kullback-leibler', 'itakura-saito'], help='[prepare] Loss function for NMF.', default='frobenius')
-    parser.add_argument('--init', type=str, choices=['random', 'nndsvd'], help='[prepare] Initialization algorithm for NMF.', default='random')
-    parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse', action='store_true', default=False) 
+    parser.add_argument('--max-nmf-iter', type=int, help='[prepare] Max number of iterations per individual NMF run (default 1000)', default=1000)
+    parser.add_argument('--beta-loss', type=str, choices=['frobenius', 'kullback-leibler', 'itakura-saito'], help='[prepare] Loss function for NMF (default frobenius)', default='frobenius')
+    parser.add_argument('--init', type=str, choices=['random', 'nndsvd'], help='[prepare] Initialization algorithm for NMF (default random)', default='random')
+    parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse (default False)', action='store_true', default=False) 
     parser.add_argument('--worker-index', type=int, help='[factorize] Index of current worker (the first worker should have index 0)', default=0)
     parser.add_argument('--local-density-threshold', type=float, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default=0.5)
     parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Fraction of the number of replicates to use as nearest neighbors for local density filtering', default=0.30)
     parser.add_argument('--show-clustering', dest='show_clustering', help='[consensus] Produce a clustergram figure summarizing the spectra clustering', action='store_true')
-
+    
     args = parser.parse_args()
 
     cnmf_obj = cNMF(output_dir=args.output_dir, name=args.name)
     
     if args.command == 'prepare':
         cnmf_obj.prepare(args.counts, components=args.components, n_iter=args.n_iter, densify=args.densify,
-                         tpm_fn=args.tpm, seed=args.seed, beta_loss=args.beta_loss,
+                         tpm_fn=args.tpm, seed=args.seed, beta_loss=args.beta_loss, max_NMF_iter=args.max_nmf_iter,
                          num_highvar_genes=args.numgenes, genes_file=args.genes_file, init=args.init)
 
     elif args.command == 'factorize':
