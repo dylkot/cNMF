@@ -274,7 +274,9 @@ class cNMF():
         Parameters
         ----------
         counts_fn : str
-            Path to input counts matrix
+            Path to input counts matrix. If extension is .h5ad, .mtx, mtx.gz, or .npz, data is loaded
+            accordingly. Otherwise it is assumed to be a tab-delimited text file. If .mtx or .mtx.gz, it
+            is assumed to be in a 10x-Genomics-formatted mtx directory.
 
         components : list or numpy array
             Values of K to run NMF for
@@ -313,10 +315,13 @@ class cNMF():
         
         if counts_fn.endswith('.h5ad'):
             input_counts = sc.read(counts_fn)
+        elif counts_fn.endswith('.mtx') or counts_fn.endswith('.mtx.gz'):
+            counts_dir = os.path.dirname(counts_fn)
+            input_counts = sc.read_10x_mtx(path = counts_dir)            
         else:
             ## Load txt or compressed dataframe and convert to scanpy object
             if counts_fn.endswith('.npz'):
-                input_counts = load_df_from_npz(counts_fn)
+                input_counts = load_df_from_npz(counts_fn)        
             else:
                 input_counts = pd.read_csv(counts_fn, sep='\t', index_col=0)
                 
@@ -1094,7 +1099,7 @@ def main():
     parser.add_argument('command', type=str, choices=['prepare', 'factorize', 'combine', 'consensus', 'k_selection_plot'])
     parser.add_argument('--name', type=str, help='[all] Name for analysis. All output will be placed in [output-dir]/[name]/...', nargs='?', default='cNMF')
     parser.add_argument('--output-dir', type=str, help='[all] Output directory. All output will be placed in [output-dir]/[name]/...', nargs='?', default='.')
-    parser.add_argument('-c', '--counts', type=str, help='[prepare] Input (cell x gene) counts matrix as df.npz or tab delimited text file')
+    parser.add_argument('-c', '--counts', type=str, help='[prepare] Input (cell x gene) counts matrix as .h5ad, .mtx, df.npz, or tab delimited text file')
     parser.add_argument('-k', '--components', type=int, help='[prepare] Numper of components (k) for matrix factorization. Several can be specified with "-k 8 9 10"', nargs='+')
     parser.add_argument('-n', '--n-iter', type=int, help='[prepare] Number of factorization replicates', default=100)
     parser.add_argument('--total-workers', type=int, help='[all] Total number of workers to distribute jobs to', default=1)
