@@ -290,11 +290,6 @@ class Preprocess():
         max_iter_harmony : int, optional (default=20)
             Maximum number of Harmony iterations to use
         """  
-        
-        try:
-            import harmonypy
-        except:
-            raise ImportError("harmonypy is not installed. Please install it using 'pip install harmonypy' before proceeding.")
                 
         if n_top_genes is not None:
             sc.pp.highly_variable_genes(_adata, flavor='seurat_v3', n_top_genes=n_top_genes)
@@ -372,6 +367,11 @@ class Preprocess():
             Corrected PCs
  
         """   
+
+        try:
+            import harmonypy
+        except:
+            raise ImportError("harmonypy is not installed. Please install it using 'pip install harmonypy' before proceeding.")
             
         harmony_res = harmonypy.run_harmony(pca, obs, harmony_vars, max_iter_harmony = max_iter_harmony,
                                             theta=theta)
