@@ -67,9 +67,11 @@ Some usage notes:
   cnmf factorize --output-dir ./example_data --name example_cNMF --worker-index 2 --total-workers 3 &
   ```
   would break the factorization jobs up into 3 batches and submit them independently. This can be used with compute clusters to run the factorizations in parallel (see tutorials for example).
- - __Input data__: Input data can be provided in 2 ways:
-    - 1. as a raw tab-delimited text file containing row labels with cell IDs (barcodes) and column labels as gene IDs
-    - 2. as a scanpy file ending in .h5ad containg counts as the data feature. See the PBMC dataset tutorial for an example of how to generate the Scanpy object from the data provided by 10X. Because Scanpy uses sparse matrices by default, the .h5ad data structure can take up much less memory than the raw counts matrix and can be much faster to load. 
+ - __Input data__: Input data can be provided in 3 ways:
+    - 1. as a scanpy file ending in .h5ad containg counts as the data feature. See the PBMC dataset tutorial for an example of how to generate the Scanpy object from the data provided by 10X. Because Scanpy uses sparse matrices by default, the .h5ad data structure can take up much less memory than the raw counts matrix and can be much faster to load. 
+    - 2. as a raw tab-delimited text file containing row labels with cell IDs (barcodes) and column labels as gene IDs
+    - 3. as a 10x-Genomics-formatted mtx directory. You provide the path to the counts.mtx file or counts.mtx.gz file to counts_fn. It expects there to be barcodes.tsv and genes.tsv in the directory as well
+
     
 See the tutorials or Stepwise_Guide.md for more details
 
@@ -104,6 +106,7 @@ cnmf_obj_corrected.prepare(counts_fn='./example_islets/batchcorrect_example.Corr
 - Fixed bug in detecting and printing cells with 0 counts of overdispersed genes
 - Added option in load_results() to return normalized or unnormalized usage.
 - Added a Preprocess class to batch correct data prior to cNMF. See the added Tutorial analyze_batcheffectcorrect_BaronEtAl.ipynb to illustrate its basic usage.
+- Now accepts 10x formatted .mtx directories (containing counts.mtx, barcodes.tsv, and genes.tsv files)
 
 ### New in version 1.4
 - Usage is re-fit a final time from gene_spectra_tpm which increases accuracy in simulations
