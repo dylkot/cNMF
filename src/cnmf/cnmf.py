@@ -341,6 +341,10 @@ class cNMF():
         if tpm_fn is None:
             tpm = compute_tpm(input_counts)
             sc.write(self.paths['tpm'], tpm)
+        elif tpm_fn.endswith('.mtx') or tpm_fn.endswith('.mtx.gz'):
+            tpm_dir = os.path.dirname(tpm_fn)
+            tpm = sc.read_10x_mtx(path = tpm_dir)      
+            sc.write(self.paths['tpm'], tpm)        
         elif tpm_fn.endswith('.h5ad'):
             subprocess.call('cp %s %s' % (tpm_fn, self.paths['tpm']), shell=True)
             tpm = sc.read(self.paths['tpm'])
