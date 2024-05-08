@@ -2,14 +2,10 @@
 
 <img src="https://storage.googleapis.com/sabeti-public/dkotliar/elife-cNMF-fig1.jpg" style="height: 800px;" />
 
-cNMF is a pipeline for inferring gene expression programs from scRNA-Seq
-
-It takes a count matrix (N cells X G genes) as input and produces a (K x G) matrix of gene expression programs (GEPs) and a (N x K) matrix specifying the usage of each program for each cell in the data.
-
-Read more about the method in the [publication](https://elifesciences.org/articles/43803) and check out examples on [simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMCs](Tutorials/analyze_pbmc_example_data.ipynb).
+cNMF is a pipeline for inferring gene expression programs from scRNA-Seq. It takes a count matrix (N cells X G genes) as input and produces a (K x G) matrix of gene expression programs (GEPs) and a (N x K) matrix specifying the usage of each program for each cell in the data. Read more about the method in the [publication](https://elifesciences.org/articles/43803) and check out examples on [simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMCs](Tutorials/analyze_pbmc_example_data.ipynb).
 
 # Installation
-cNMF has been tested with Python 3.7 and requires scikit-learn>=1.0 and scanpy>=1.8
+cNMF has been tested with Python 3.7 and 3.10 and requires scikit-learn>=1.0, scanpy>=1.8, and AnnData>=0.9
 
 You can install with [pip](https://pypi.org/):
 
@@ -17,19 +13,12 @@ You can install with [pip](https://pypi.org/):
 pip install cnmf
 ```
 
-We also suggest creating a [conda](https://conda.io/miniconda.html) environment to manage the dependencies as follows:
+If you want to use the batch correction preprocessing, you also need to install the [Python implementation of Harmony](https://github.com/slowkow/harmonypy) and scikit-misc
 
 ```bash
-conda update -yn base conda
-conda create -n cnmf_env --yes --channel bioconda --channel conda-forge --channel defaults python=3.7 fastcluster matplotlib numpy palettable pandas scipy 'scikit-learn>=1.0' pyyaml 'scanpy>=1.8' && conda clean --yes --all # Create environment, cnmf_env, containing required packages
-conda activate cnmf_env # Activate cnmf_env - necessary before running cnmf
-pip install cnmf # install the actual cnmf package
-    
-## Only needed to load the example notebook in jupyterlab but not needed for non-interactive runs ## 
-conda install --yes jupyterlab && conda clean --yes --all
+pip install harmonypy
+pip install scikit-misc
 ```
-
-Now you can run cNMF as long as the cnmv_enf environment is activated with the `conda activate cnmf_env` command
 
 # Running cNMF
 
@@ -86,7 +75,7 @@ See the tutorials or Stepwise_Guide.md for more details
 
 # Integration of technical variables and batches
 
-We have implemented a pipeline to integrate batch variables prior to running cNMF and to handle ADTs in CITE-Seq. It uses an adaptation of [Harmonypy](https://github.com/slowkow/harmonypy) that corrects the underlying count matrix rather than principal components. We describe it in our [recent preprint](https://www.biorxiv.org/content/10.1101/2024.05.03.592310v1). See the [batch correction tutorial](Tutorials/analyze_batcheffectcorrect_BaronEtAl.ipynb) as well for an example.
+We have implemented a pipeline to integrate batch variables prior to running cNMF and to handle ADTs in CITE-Seq. It uses an adaptation of [Harmony](https://github.com/slowkow/harmonypy) that corrects the underlying count matrix rather than principal components. We describe it in our [recent preprint](https://www.biorxiv.org/content/10.1101/2024.05.03.592310v1). See the [batch correction tutorial](Tutorials/analyze_batcheffectcorrect_BaronEtAl.ipynb) as well for an example.
 
 We use a separate Preprocess class to run batch correction. You pass in an AnnData object, as well as harmony_vars, a list of the names of variables to correct correspond to columns in the AnnData obs attribute. You also specify an output file base name to save the results to like below:
 
