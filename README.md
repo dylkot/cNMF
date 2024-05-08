@@ -84,6 +84,31 @@ Some usage notes:
     
 See the tutorials or Stepwise_Guide.md for more details
 
+# Integration of technical variables and batches
+
+We have implemented a pipeline to integrate batch variables prior to running cNMF and to handle ADTs in CITE-Seq. It uses an adaptation of [Harmonypy](https://github.com/slowkow/harmonypy) that corrects the underlying count matrix rather than principal components. We describe it in our [recent preprint](https://www.biorxiv.org/content/10.1101/2024.05.03.592310v1). See the [batch correction tutorial]((Tutorials/analyze_batcheffectcorrect_BaronEtAl.ipynb) as well for an example.
+
+We use a separate Preprocess class to run batch correction. You pass in an AnnData object, as well as harmony_vars, a list of the names of variables to correct correspond to columns in the AnnData obs attribute. You also specify an output file base name to save the results to like below:
+
+```
+from cnmf import cNMF, Preprocess
+#Initialize the Preprocess object
+p = Preprocess(random_seed=14)
+
+#Batch correct the data and save the corrected high-variance gene data to adata_c, and the TPM normalized data to adata_tpm 
+(adata_c, adata_tpm, hvgs) = p.preprocess_for_cnmf(adata, harmony_vars=['Sex', 'Sample'], n_top_rna_genes = 2000, librarysize_targetsum= 1e6,
+                                                    save_output_base='./example_islets/batchcorrect_example_sex')
+
+#Then run cNMF passing in the corrected counts file, tpm_fn, and HVGs as inputs
+cnmf_obj_corrected = cNMF(output_dir='./example_islets', name='BatchCorrected')
+cnmf_obj_corrected.prepare(counts_fn='./example_islets/batchcorrect_example.Corrected.HVG.Varnorm.h5ad',
+                           tpm_fn='./example_islets/batchcorrect_example.TP10K.h5ad',
+                           genes_file='./example_islets/batchcorrect_example.Corrected.HVGs.txt',
+                           components=[15], n_iter=20, seed=14, num_highvar_genes=2000)
+
+#Then proceed with the rest of cNMF as normal
+```
+
 # Change log
 
 ### New in version 1.5
