@@ -227,7 +227,7 @@ class Preprocess():
                                                 librarysize_targetsum= librarysize_targetsum,
                                                 max_scaled_thresh = max_scaled_thresh,
                                                 quantile_thresh = quantile_thresh, theta=theta,
-                                                makeplots=makeplots)
+                                                makeplots=makeplots, max_iter_harmony=max_iter_harmony)
         
         if adata_ADT is not None:            
             adata_ADT = adata_ADT[adata_RNA.obs.index, :]
