@@ -534,8 +534,17 @@ class cNMF():
 
         replicate_params = []
         for i, (k, r) in enumerate(itertools.product(k_list, range(n_iter))):
-            replicate_params.append([k, r, nmf_seeds[i]])
-        replicate_params = pd.DataFrame(replicate_params, columns = ['n_components', 'iter', 'nmf_seed'])
+            if not os.path.exists(self.paths['iter_spectra'] % (k, r)):
+                replicate_params.append([k, r, nmf_seeds[i], False])
+            else:
+                replicate_params.append([k, r, nmf_seeds[i], True])
+        replicate_params = pd.DataFrame(replicate_params, columns = ['n_components', 'iter', 'nmf_seed', 'completed'])
+        
+        n_completed = replicate_params['completed'].sum()
+        if  n_completed > 0:
+            message = """{n} runs already appear completed. If this is unexpected, consider
+            re-initializing the cnmf object with a different run name or output directory""".format(n=n_completed)
+            warnings.warn(message, UserWarning)
 
         _nmf_kwargs = dict(
                         alpha_W=alpha_usage,
@@ -553,6 +562,24 @@ class cNMF():
             _nmf_kwargs['solver'] = 'cd'
 
         return(replicate_params, _nmf_kwargs)
+    
+    
+    def update_nmf_iter_params(self):
+        """
+        Update the replicate parameters file to indicate jobs that have already completed
+        """
+        _nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
+        replicate_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
+        for i in replicate_params.index:
+            if not os.path.exists(self.paths['iter_spectra'] % (replicate_params.at[i, 'n_components'], replicate_params.at[i, 'iter'])):
+                replicate_params.at[i, 'completed'] = False
+            else:
+                replicate_params.at[i, 'completed'] = True
+                
+        remaining = (replicate_params['completed'] == False).sum()
+        print('{n} NMF runs are currently incomplete'.format(n=remaining))
+        
+        self.save_nmf_iter_params(replicate_params, _nmf_kwargs)
 
 
     def save_nmf_iter_params(self, replicate_params, run_params):
@@ -577,6 +604,7 @@ class cNMF():
 
         return(spectra, usages)
 
+
     def factorize_multi_process(self, total_workers):
         """
         multiproces wrapper for nmf.factorize()
@@ -590,14 +618,27 @@ class cNMF():
             p.map(factorize_mp_signature, list_args)
             p.close()
             p.join()    
+  
     
     def factorize(self,
-                worker_i=0, total_workers=1,
+                worker_i=0, total_workers=1, skip_completed_runs=False,
                 ):
         """
         Iteratively run NMF with prespecified parameters.
 
         Use the `worker_i` and `total_workers` parameters for parallelization.
+        
+        Parameters
+        ----------
+        worker_i : int (default=0)
+            index of worker who's jobs will be executed
+            
+        total_workers : int (default=1),
+            total number of workers for jobs to be distributed over
+            
+        skip_completed_runs : boolean (default=False),
+            If true, skips files that have already completed. Run self.update_nmf_iter_params() to update
+            the ledger of completed runs first if setting to True.
 
         Generic kwargs for NMF are loaded from self.paths['nmf_run_parameters'], defaults below::
 
@@ -611,24 +652,17 @@ class cNMF():
                 regularization=None
                 init='random'
                 random_state, n_components are both set by the prespecified self.paths['nmf_replicate_parameters'].
-
-
-        Parameters
-        ----------
-        norm_counts : pandas.DataFrame,
-            Normalized counts dataFrame to be factorized.
-            (Output of ``normalize_counts``)
-
-        run_params : pandas.DataFrame,
-            Parameters for NMF iterations.
-            (Output of ``prepare_nmf_iter_params``)
-
         """
         run_params = load_df_from_npz(self.paths['nmf_replicate_parameters'])
         norm_counts = sc.read(self.paths['normalized_counts'])
         _nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
 
-        jobs_for_this_worker = worker_filter(range(len(run_params)), worker_i, total_workers)
+        if not skip_completed_runs:
+            jobs_for_this_worker = worker_filter(range(len(run_params)), worker_i, total_workers)
+        else:
+            jobs_for_this_worker = worker_filter(run_params.index[run_params['completed']==False],
+                                                 worker_i, total_workers)
+    
         for idx in jobs_for_this_worker:
 
             p = run_params.iloc[idx, :]
@@ -1116,6 +1150,7 @@ def main():
     parser.add_argument('--init', type=str, choices=['random', 'nndsvd'], help='[prepare] Initialization algorithm for NMF (default random)', default='random')
     parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse (default False)', action='store_true', default=False) 
     parser.add_argument('--worker-index', type=int, help='[factorize] Index of current worker (the first worker should have index 0)', default=0)
+    parser.add_argument('--skip-completed-runs', action='store_true', help='[factorize] Skip previously completed runs. Must re-run prepare first to update completed runs', default=False))
     parser.add_argument('--local-density-threshold', type=float, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default=0.5)
     parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Fraction of the number of replicates to use as nearest neighbors for local density filtering', default=0.30)
     parser.add_argument('--show-clustering', dest='show_clustering', help='[consensus] Produce a clustergram figure summarizing the spectra clustering', action='store_true')
@@ -1130,7 +1165,8 @@ def main():
                          num_highvar_genes=args.numgenes, genes_file=args.genes_file, init=args.init)
 
     elif args.command == 'factorize':
-        cnmf_obj.factorize(worker_i=args.worker_index, total_workers=args.total_workers)
+        cnmf_obj.factorize(worker_i=args.worker_index, total_workers=args.total_workers,
+                           skip_completed_runs=args.skip_completed_runs)
 
     elif args.command == 'combine':
         cnmf_obj.combine(components=args.components)
