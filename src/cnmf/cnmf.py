@@ -664,7 +664,6 @@ class cNMF():
                                                  worker_i, total_workers)
     
         for idx in jobs_for_this_worker:
-
             p = run_params.iloc[idx, :]
             print('[Worker %d]. Starting task %d.' % (worker_i, idx))
             _nmf_kwargs['random_state'] = p['nmf_seed']
@@ -1150,7 +1149,7 @@ def main():
     parser.add_argument('--init', type=str, choices=['random', 'nndsvd'], help='[prepare] Initialization algorithm for NMF (default random)', default='random')
     parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse (default False)', action='store_true', default=False) 
     parser.add_argument('--worker-index', type=int, help='[factorize] Index of current worker (the first worker should have index 0)', default=0)
-    parser.add_argument('--skip-completed-runs', action='store_true', help='[factorize] Skip previously completed runs. Must re-run prepare first to update completed runs', default=False))
+    parser.add_argument('--skip-completed-runs', action='store_true', help='[factorize] Skip previously completed runs. Must re-run prepare first to update completed runs', default=False)
     parser.add_argument('--local-density-threshold', type=float, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default=0.5)
     parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Fraction of the number of replicates to use as nearest neighbors for local density filtering', default=0.30)
     parser.add_argument('--show-clustering', dest='show_clustering', help='[consensus] Produce a clustergram figure summarizing the spectra clustering', action='store_true')
