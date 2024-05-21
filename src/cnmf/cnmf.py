@@ -257,6 +257,9 @@ class cNMF():
                 'gene_spectra_score__txt': os.path.join(self.output_dir, self.name, self.name+'.gene_spectra_score.k_%d.dt_%s.txt'),
                 'gene_spectra_tpm': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.gene_spectra_tpm.k_%d.dt_%s.df.npz'),
                 'gene_spectra_tpm__txt': os.path.join(self.output_dir, self.name, self.name+'.gene_spectra_tpm.k_%d.dt_%s.txt'),
+                
+                'starcat_spectra': os.path.join(self.output_dir, self.name, 'cnmf_tmp', self.name+'.starcat_spectra.k_%d.dt_%s.df.npz'),
+                'starcat_spectra__txt': os.path.join(self.output_dir, self.name, self.name+'.starcat_spectra.k_%d.dt_%s.txt'),
 
                 'k_selection_plot' :  os.path.join(self.output_dir, self.name, self.name+'.k_selection.png'),
                 'k_selection_stats' :  os.path.join(self.output_dir, self.name, self.name+'.k_selection_stats.df.npz'),
@@ -751,8 +754,8 @@ class cNMF():
         return(self.refit_usage(X.T, usage.T).T)
 
 
-    def consensus(self, k, density_threshold=0.5, local_neighborhood_size = 0.30,show_clustering = True,
-                  skip_density_and_return_after_stats = False, close_clustergram_fig=False,
+    def consensus(self, k, density_threshold=0.5, local_neighborhood_size=0.30, show_clustering=True,
+                  build_ref=False, skip_density_and_return_after_stats=False, close_clustergram_fig=False,
                   refit_usage=True, normalize_tpm_spectra=False, norm_counts=None):
         """
         Obtain consensus estimates of spectra and usages from a cNMF run and output a clustergram of
@@ -772,6 +775,9 @@ class cNMF():
 
         show_clustering : boolean (default=False)
             If True, generates the consensus clustergram filter
+            
+        build_ref : boolean (default=False)
+            If True, generates reference spectra for use in starCAT
 
         skip_density_and_return_after_stats : boolean (default=False)
             True when running k_selection_plot to compute stability and error for input parameters without computing
@@ -1011,6 +1017,43 @@ class cNMF():
             fig.savefig(self.paths['clustering_plot']%(k, density_threshold_repl), dpi=250)
             if close_clustergram_fig:
                 plt.close(fig)
+                
+        if build_ref:
+            self.build_reference(k, density_threshold)
+                
+                
+    def build_reference(self, k, density_threshold=0.5, target_sum=1e6):
+        '''
+        Builds reference GEPs for use with starCAT using the results from "consensus" step. 
+
+        Parameters
+        ----------
+        k : int
+            Number of programs (must be within the k values specified in previous steps)
+
+        density_threshold : float (default: 0.5)
+            Threshold for filtering outlier spectra. 2.0 or greater applies no filter.
+        '''
+        density_threshold_repl = str(density_threshold).replace('.', '_')
+        tpmfn = self.paths['gene_spectra_tpm__txt'] % (k, density_threshold_repl)
+        spectra_tpm = pd.read_csv(tpmfn, index_col = 0, sep = '\t')
+        hvgs = open(self.paths['nmf_genes_list']).read().split('\n')
+        
+        tpm_stats = load_df_from_npz(self.paths['tpm_stats'])
+        tpm_stats.index = spectra_tpm.columns
+        
+        # Renormalize TPM spectra
+        spectra_tpm_renorm = spectra_tpm.copy()
+        spectra_tpm_renorm = spectra_tpm_renorm.div(spectra_tpm_renorm.sum(axis=1), axis=0)*target_sum
+
+        # Var-norm TPM spectra
+        spectra_tpm_varnorm = spectra_tpm_renorm.div(tpm_stats['__std'])
+
+        ref_spectra = spectra_tpm_varnorm[hvgs].copy()
+        ref_spectra.index = 'GEP' + ref_spectra.index.astype('str')
+        
+        save_df_to_npz(ref_spectra, self.paths['starcat_spectra']%(k, density_threshold_repl))
+        save_df_to_text(ref_spectra, self.paths['starcat_spectra__txt']%(k, density_threshold_repl))
 
 
     def k_selection_plot(self, close_fig=False):
@@ -1153,6 +1196,8 @@ def main():
     parser.add_argument('--local-density-threshold', type=float, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default=0.5)
     parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Fraction of the number of replicates to use as nearest neighbors for local density filtering', default=0.30)
     parser.add_argument('--show-clustering', dest='show_clustering', help='[consensus] Produce a clustergram figure summarizing the spectra clustering', action='store_true')
+    parser.add_argument('--build-reference', dest='build_reference', help='[consensus] Generates a reference spectra for use in starCAT', action='store_true', default=False)
+
     
     args = parser.parse_args()
 
@@ -1183,7 +1228,7 @@ def main():
         for k in ks:
             merged_spectra = load_df_from_npz(cnmf_obj.paths['merged_spectra']%k)
             cnmf_obj.consensus(k, args.local_density_threshold, args.local_neighborhood_size, args.show_clustering,
-                               close_clustergram_fig=True)
+                               args.build_reference, close_clustergram_fig=True)
 
     elif args.command == 'k_selection_plot':
         cnmf_obj.k_selection_plot(close_fig=True)
