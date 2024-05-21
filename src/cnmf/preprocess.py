@@ -316,10 +316,12 @@ class Preprocess():
             if not normalize_librarysize:
                 del(anorm)
                 _adata.X, _adata.obsm['X_pca_harmony'] = self.harmony_correct_X(_adata.X.todense(), _adata.obs, _adata.obsm['X_pca'],
-                                                                                harmony_vars, max_iter_harmony=max_iter_harmony)
+                                                                                harmony_vars, max_iter_harmony=max_iter_harmony,
+                                                                                theta=theta)
             else:
                 _adata.X, _adata.obsm['X_pca_harmony'] = self.harmony_correct_X(anorm.X.todense(), anorm.obs, anorm.obsm['X_pca'],
-                                                                                harmony_vars, max_iter_harmony=max_iter_harmony) 
+                                                                                harmony_vars, max_iter_harmony=max_iter_harmony,
+                                                                                theta=theta) 
                 
         else:
             if normalize_librarysize:
