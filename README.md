@@ -104,6 +104,10 @@ cnmf_obj_corrected.prepare(counts_fn='./example_islets/batchcorrect_example.Corr
 
 # Change log
 
+### New in version 1.6
+- Added option in consensus() to build spectra for annotating new datasets with GEPs using [starCAT](https://github.com/immunogenomics/starCAT).
+- Added option to factorize() to skip tasks that have already completed. 
+
 ### New in version 1.5
 - Fixed bug in detecting and printing cells with 0 counts of overdispersed genes
 - Added option in load_results() to return normalized or unnormalized usage.
