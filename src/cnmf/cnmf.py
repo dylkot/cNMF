@@ -755,7 +755,7 @@ class cNMF():
 
 
     def consensus(self, k, density_threshold=0.5, local_neighborhood_size=0.30, show_clustering=True,
-                  build_ref=False, skip_density_and_return_after_stats=False, close_clustergram_fig=False,
+                  build_ref=True, skip_density_and_return_after_stats=False, close_clustergram_fig=False,
                   refit_usage=True, normalize_tpm_spectra=False, norm_counts=None):
         """
         Obtain consensus estimates of spectra and usages from a cNMF run and output a clustergram of
@@ -776,7 +776,7 @@ class cNMF():
         show_clustering : boolean (default=False)
             If True, generates the consensus clustergram filter
             
-        build_ref : boolean (default=False)
+        build_ref : boolean (default=True)
             If True, generates reference spectra for use in starCAT
 
         skip_density_and_return_after_stats : boolean (default=False)
@@ -1196,7 +1196,7 @@ def main():
     parser.add_argument('--local-density-threshold', type=float, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default=0.5)
     parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Fraction of the number of replicates to use as nearest neighbors for local density filtering', default=0.30)
     parser.add_argument('--show-clustering', dest='show_clustering', help='[consensus] Produce a clustergram figure summarizing the spectra clustering', action='store_true')
-    parser.add_argument('--build-reference', dest='build_reference', help='[consensus] Generates a reference spectra for use in starCAT', action='store_true', default=False)
+    parser.add_argument('--build-reference', dest='build_reference', help='[consensus] Generates a reference spectra for use in starCAT', action='store_true', default=True)
 
     
     args = parser.parse_args()
