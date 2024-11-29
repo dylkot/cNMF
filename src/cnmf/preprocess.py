@@ -221,7 +221,7 @@ class Preprocess():
         else:
             raise Exception('data should either be an AnnData object or a list of 2 AnnData objects')
 
-        tp10k = sc.pp.normalize_per_cell(adata_RNA, counts_per_cell_after=librarysize_targetsum, copy=True)
+        tp10k = sc.pp.normalize_total(adata_RNA, target_sum=librarysize_targetsum, copy=True)
         adata_RNA, hvgs = self.normalize_batchcorrect(adata_RNA, harmony_vars=harmony_vars,
                                                 n_top_genes = n_top_rna_genes, 
                                                 librarysize_targetsum= librarysize_targetsum,
@@ -231,7 +231,7 @@ class Preprocess():
         
         if adata_ADT is not None:            
             adata_ADT = adata_ADT[adata_RNA.obs.index, :]
-            sc.pp.normalize_per_cell(adata_ADT, counts_per_cell_after=librarysize_targetsum)
+            sc.pp.normalize_total(adata_ADT, target_sum=librarysize_targetsum)
             
             merge_var = pd.concat([tp10k.var, adata_ADT.var], axis=0)            
             tp10k = sc.AnnData(hstack((tp10k.X, adata_ADT.X)), obs=tp10k.obs, var=merge_var)
@@ -297,7 +297,7 @@ class Preprocess():
             raise Exception("If a numeric value for n_top_genes is not provided, you must include a highly_variable column in _adata")                            
             
         if harmony_vars is not None:
-            anorm = sc.pp.normalize_per_cell(_adata, counts_per_cell_after=librarysize_targetsum, copy=True)
+            anorm = sc.pp.normalize_total(_adata, target_sum=librarysize_targetsum, copy=True)
             anorm = anorm[:, _adata.var['highly_variable']]
             stdscale_quantile_celing(anorm, max_value=max_scaled_thresh, quantile_thresh=quantile_thresh)
             
@@ -325,7 +325,7 @@ class Preprocess():
                 
         else:
             if normalize_librarysize:
-                sc.pp.normalize_per_cell(_adata, counts_per_cell_after=librarysize_targetsum)
+                sc.pp.normalize_total(_adata, target_sum=librarysize_targetsum)
             
             
             _adata = _adata[:, _adata.var['highly_variable']]
@@ -408,7 +408,7 @@ class Preprocess():
         makeplots : boolean, optional (default=True)
             If True, makes a scatter plot of values pre and post correction
         """
-        sc.pp.normalize_per_cell(_adata)  
+        sc.pp.normalize_total(_adata)  
         stdscale_quantile_celing(_adata, max_value=max_scaled_thresh, quantile_thresh=quantile_thresh)
 
         if issparse(_adata.X):        
