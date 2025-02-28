@@ -55,8 +55,12 @@ def fast_ols_all_cols(X, Y):
     beta = np.dot(pinv, Y)
     return beta 
 
+def efficient_ols_all_cols(X, Y):
+    beta, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
+    return beta
+
 def fast_ols_all_cols_df(X,Y):
-    beta = fast_ols_all_cols(X, Y)
+    beta = efficient_ols_all_cols(X, Y)
     beta = pd.DataFrame(beta, index=X.columns, columns=Y.columns)
     return beta
 
