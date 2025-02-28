@@ -50,11 +50,6 @@ def check_dir_exists(path):
 def worker_filter(iterable, worker_index, total_workers):
     return (p for i,p in enumerate(iterable) if (i-worker_index)%total_workers==0)
 
-def fast_ols_all_cols(X, Y):
-    pinv = np.linalg.pinv(X)
-    beta = np.dot(pinv, Y)
-    return beta 
-
 def efficient_ols_all_cols(X, Y):
     beta, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
     return beta
