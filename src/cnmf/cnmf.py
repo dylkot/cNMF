@@ -53,19 +53,19 @@ def worker_filter(iterable, worker_index, total_workers):
 def fast_ols_all_cols(X, Y):
     pinv = np.linalg.pinv(X)
     beta = np.dot(pinv, Y)
-    return(beta)
+    return beta 
 
 def fast_ols_all_cols_df(X,Y):
     beta = fast_ols_all_cols(X, Y)
     beta = pd.DataFrame(beta, index=X.columns, columns=Y.columns)
-    return(beta)
+    return beta
 
 def var_sparse_matrix(X):
     mean = np.array(X.mean(axis=0)).reshape(-1)
     Xcopy = X.copy()
     Xcopy.data **= 2
     var = np.array(Xcopy.mean(axis=0)).reshape(-1) - (mean**2)
-    return(var)
+    return var
 
 
 def get_highvar_genes_sparse(expression, expected_fano_threshold=None,
@@ -120,7 +120,7 @@ def get_highvar_genes_sparse(expression, expected_fano_threshold=None,
     gene_fano_parameters = {
             'A': A, 'B': B, 'T':T, 'minimal_mean': minimal_mean,
         }
-    return(gene_counts_stats, gene_fano_parameters)
+    return gene_counts_stats, gene_fano_parameters
 
 
 
@@ -174,7 +174,7 @@ def get_highvar_genes(input_counts, expected_fano_threshold=None,
     gene_fano_parameters = {
             'A': A, 'B': B, 'T':T, 'minimal_mean': minimal_mean,
         }
-    return(gene_counts_stats, gene_fano_parameters)
+    return gene_counts_stats, gene_fano_parameters
 
 
 def compute_tpm(input_counts):
@@ -183,7 +183,7 @@ def compute_tpm(input_counts):
     """
     tpm = input_counts.copy()
     sc.pp.normalize_total(tpm, target_sum=1e6)
-    return(tpm)
+    return tpm
 
 
 def factorize_mp_signature(args):
