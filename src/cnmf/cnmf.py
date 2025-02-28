@@ -479,7 +479,8 @@ class cNMF():
                 print('Warning NaNs in normalized counts matrix')                    
         
         ## Save a \n-delimited list of the high-variance genes used for factorization
-        open(self.paths['nmf_genes_list'], 'w').write('\n'.join(high_variance_genes_filter))
+        with open(self.paths['nmf_genes_list'], 'w') as F:
+            F.write('\n'.join(high_variance_genes_filter))
 
         ## Check for any cells that have 0 counts of the overdispersed genes
         zerocells = np.array(norm_counts.X.sum(axis=1)==0).reshape(-1)
