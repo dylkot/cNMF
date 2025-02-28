@@ -466,6 +466,7 @@ class cNMF():
                 
         ## Subset out high-variance genes
         norm_counts = counts[:, high_variance_genes_filter].copy()
+        norm_counts.X = norm_counts.X.astype(np.float64)
 
         ## Scale genes to unit variance
         if sp.issparse(tpm.X):
