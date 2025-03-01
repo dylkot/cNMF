@@ -17,6 +17,8 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.utils import sparsefuncs
+from sklearn.preprocessing import StandardScaler
+
 from scipy.cluster.hierarchy import leaves_list, linkage
 
 import matplotlib.pyplot as plt
@@ -54,27 +56,24 @@ def efficient_ols_all_cols(X, Y):
     beta, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
     return beta
 
-def fast_ols_all_cols_df(X,Y):
+def efficient_ols_all_cols_df(X,Y):
     beta = efficient_ols_all_cols(X, Y)
     beta = pd.DataFrame(beta, index=X.columns, columns=Y.columns)
     return beta
 
-def var_sparse_matrix(X):
-    mean = np.array(X.mean(axis=0)).reshape(-1)
-    Xcopy = X.copy()
-    Xcopy.data **= 2
-    var = np.array(Xcopy.mean(axis=0)).reshape(-1) - (mean**2)
-    return var
-
+def get_mean_var_sparse(X):
+    scaler = StandardScaler(with_mean=False)
+    scaler.fit(X)
+    return(scaler.mean_, scaler.var_)
 
 def get_highvar_genes_sparse(expression, expected_fano_threshold=None,
                        minimal_mean=0.5, numgenes=None):
     # Find high variance genes within those cells
-    gene_mean = np.array(expression.mean(axis=0)).astype(float).reshape(-1)
-    E2 = expression.copy(); E2.data **= 2; gene2_mean = np.array(E2.mean(axis=0)).reshape(-1)
-    gene_var = pd.Series(gene2_mean - (gene_mean**2))
-    del(E2)
+
+    
+    gene_mean, gene_var = get_mean_var_sparse(expression)
     gene_mean = pd.Series(gene_mean)
+    gene_var = pd.Series(gene_var)
     gene_fano = gene_var / gene_mean
 
     # Find parameters for expected fano line
@@ -888,14 +887,13 @@ class cNMF():
         if normalize_tpm_spectra:
             spectra_tpm = spectra_tpm.div(spectra_tpm.sum(axis=1), axis=0) * 1e6
                     
-        # Convert spectra to Z-score units, and obtain results for all genes by running last step of NMF
-        # with usages fixed and Z-scored TPM as the input matrix
+        # Convert spectra to Z-score units by fitting OLS regression of the Z-scored TPM against GEP usage
         if sp.issparse(tpm.X):
             norm_tpm = (np.array(tpm.X.todense()) - tpm_stats['__mean'].values) / tpm_stats['__std'].values
         else:
             norm_tpm = (tpm.X - tpm_stats['__mean'].values) / tpm_stats['__std'].values
         
-        usage_coef = fast_ols_all_cols(rf_usages.values, norm_tpm)
+        usage_coef = efficient_ols_all_cols(rf_usages.values, norm_tpm)
         usage_coef = pd.DataFrame(usage_coef, index=rf_usages.columns, columns=tpm.var.index)
         
         if refit_usage:
