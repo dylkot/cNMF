@@ -366,7 +366,7 @@ class cNMF():
             sc.write(self.paths['tpm'], tpm)
         
         if sp.issparse(tpm.X):
-            gene_tpm_mean, gene_tpm_stddev = get_mean_var_sparse(tpm)
+            gene_tpm_mean, gene_tpm_stddev = get_mean_var_sparse(tpm.X)
             gene_tpm_stddev = gene_tpm_stddev**.5
         else:
             gene_tpm_mean = np.array(tpm.X.mean(axis=0)).reshape(-1)
