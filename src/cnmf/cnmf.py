@@ -52,16 +52,83 @@ def check_dir_exists(path):
 def worker_filter(iterable, worker_index, total_workers):
     return (p for i,p in enumerate(iterable) if (i-worker_index)%total_workers==0)
 
-def efficient_ols_all_cols(X, Y):
-    beta, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)
-    return beta
+def efficient_ols_all_cols(X, Y, batch_size=1024, normalize_y=False):
+    """
+    Solve OLS: Beta = (X^T X)^{-1} X^T Y,
+    accumulating X^T X and X^T Y in row-batches.
+    
+    Optionally mean/variance-normalize each column of Y *globally* 
+    (using the entire dataset's mean/var), while still only converting
+    each row-batch to dense on-the-fly.
 
-def efficient_ols_all_cols_df(X,Y):
-    beta = efficient_ols_all_cols(X, Y)
-    beta = pd.DataFrame(beta, index=X.columns, columns=Y.columns)
-    return beta
+    Parameters
+    ----------
+    X : np.ndarray, shape (n_samples, n_predictors)
+        Predictor matrix.
+    Y : np.ndarray or scipy.sparse.spmatrix, shape (n_samples, n_targets)
+        Outcomes. Each column is one target variable.
+    batch_size : int
+        Number of rows to process per chunk.
+    normalize_y : bool
+        If True, compute global mean & var of Y columns, then subtract mean 
+        and divide by std for each batch.
 
-def get_mean_var_sparse(X):
+    Returns
+    -------
+    Beta : np.ndarray, shape (n_predictors, n_targets)
+        The OLS coefficients for each target.
+    """
+
+    # -- Basic shape checks
+    n_samples, n_predictors = X.shape
+    n_samples_Y, n_targets = Y.shape
+    if n_samples != n_samples_Y:
+        raise ValueError("X and Y must have the same number of rows.")
+
+    # -- Optionally compute global mean & variance of Y columns
+    if normalize_y:
+        meanY, varY = get_mean_var(Y)
+
+        # Avoid zero or near-zero std
+        eps = 1e-12
+        varY[varY < eps] = eps
+        stdY = np.sqrt(varY)
+
+    # -- Initialize accumulators
+    XtX = np.zeros((n_predictors, n_predictors), dtype=np.float64)
+    XtY = np.zeros((n_predictors, n_targets),    dtype=np.float64)
+
+    # -- Process rows in batches
+    for start_row in range(0, n_samples, batch_size):
+        end_row = min(start_row + batch_size, n_samples)
+        X_batch = X[start_row:end_row, :]
+
+        # Extract chunk from Y.  If sparse, convert only this subset to dense.
+        if sp.issparse(Y) and normalize_y:
+            # Only need to densify if normalizing
+            Y_batch = Y[start_row:end_row, :].toarray()
+        else:
+            Y_batch = Y[start_row:end_row, :]
+
+        # -- Optionally apply normalization
+        if normalize_y:
+            Y_batch = (Y_batch - meanY) / stdY
+        
+        # -- Accumulate partial sums
+        XtX += X_batch.T @ X_batch
+        XtY += X_batch.T @ Y_batch
+
+    # -- Solve the normal equations
+    #    Beta = (X^T X)^(-1) X^T Y
+    #    Using lstsq for stability.
+    Beta, residuals, rank, s = np.linalg.lstsq(XtX, XtY, rcond=None)
+    return Beta
+
+
+
+    
+
+def get_mean_var(X):
     scaler = StandardScaler(with_mean=False)
     scaler.fit(X)
     return(scaler.mean_, scaler.var_)
@@ -71,7 +138,7 @@ def get_highvar_genes_sparse(expression, expected_fano_threshold=None,
     # Find high variance genes within those cells
 
     
-    gene_mean, gene_var = get_mean_var_sparse(expression)
+    gene_mean, gene_var = get_mean_var(expression)
     gene_mean = pd.Series(gene_mean)
     gene_var = pd.Series(gene_var)
     gene_fano = gene_var / gene_mean
@@ -366,7 +433,7 @@ class cNMF():
             sc.write(self.paths['tpm'], tpm)
         
         if sp.issparse(tpm.X):
-            gene_tpm_mean, gene_tpm_stddev = get_mean_var_sparse(tpm.X)
+            gene_tpm_mean, gene_tpm_stddev = get_mean_var(tpm.X)
             gene_tpm_stddev = gene_tpm_stddev**.5
         else:
             gene_tpm_mean = np.array(tpm.X.mean(axis=0)).reshape(-1)
@@ -888,12 +955,7 @@ class cNMF():
             spectra_tpm = spectra_tpm.div(spectra_tpm.sum(axis=1), axis=0) * 1e6
                     
         # Convert spectra to Z-score units by fitting OLS regression of the Z-scored TPM against GEP usage
-        if sp.issparse(tpm.X):
-            norm_tpm = (np.array(tpm.X.todense()) - tpm_stats['__mean'].values) / tpm_stats['__std'].values
-        else:
-            norm_tpm = (tpm.X - tpm_stats['__mean'].values) / tpm_stats['__std'].values
-        
-        usage_coef = efficient_ols_all_cols(rf_usages.values, norm_tpm)
+        usage_coef = efficient_ols_all_cols(rf_usages.values, tpm.X, normalize_y=True)
         usage_coef = pd.DataFrame(usage_coef, index=rf_usages.columns, columns=tpm.var.index)
         
         if refit_usage:
