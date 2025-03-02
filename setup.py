@@ -43,7 +43,6 @@ setuptools.setup(
    'scanpy',
    'pandas',
    'numpy',
-   'fastcluster',
    'matplotlib',
    'palettable',
    'scipy',
