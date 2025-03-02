@@ -106,6 +106,8 @@ cnmf_obj_corrected.prepare(counts_fn='./example_islets/batchcorrect_example.Corr
 
 ### New in version 1.7
 - Use scipy hierachical clsutering grather than fastcluster for compatibility with numpy>2.0
+- More efficient sparse + batched OLS computation uses significantly less memory
+- Implemented basic testing suite
 
 ### New in version 1.6
 - Added option in consensus() to build spectra for annotating new datasets with GEPs using [starCAT](https://github.com/immunogenomics/starCAT).
