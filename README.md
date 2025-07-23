@@ -1,18 +1,20 @@
+### $$\color{red}\textbf{Notice: This is a fork of the cNMF repo with the core scikit-learn NMF implementation switched out for nmf-torch.}$$
+### $$\color{red}\textbf{This fork enables faster and scalable infernece using pytorch but has not been benchmarked against the original.}$$ 
+### $$\color{red}\textbf{Use at your own discretion.}$$
+
 # Consensus NMF (cNMF)
 
 <img src="https://storage.googleapis.com/sabeti-public/dkotliar/elife-cNMF-fig1.jpg" style="height: 800px;" />
 
 cNMF is a pipeline for inferring gene expression programs from scRNA-Seq. It takes a count matrix (N cells X G genes) as input and produces a (K x G) matrix of gene expression programs (GEPs) and a (N x K) matrix specifying the usage of each program for each cell in the data. Read more about the method in the [publication](https://elifesciences.org/articles/43803) and check out examples on [simulated data](Tutorials/analyze_simulated_example_data.ipynb) and [PBMCs](Tutorials/analyze_pbmc_example_data.ipynb).
 
-We have also created a tutorial for running cNMF from R. See the [Rmd notebook](Tutorials/R_vignette.Rmd) or the [compiled html](Tutorials/R_vignette.nb.html) for this.
-
 # Installation
-cNMF has been tested with Python 3.7 and 3.10 and requires scikit-learn>=1.0, scanpy>=1.8, and AnnData>=0.9
+cNMF has been tested with Python 3.7 and 3.10 and requires nmf-torch, scikit-learn>=1.0, scanpy>=1.8, and AnnData>=0.9
 
-You can install with [pip](https://pypi.org/):
+You can install by downloading this repo and running the following command:
 
 ```bash
-pip install cnmf
+pip install -e .
 ```
 
 If you want to use the batch correction preprocessing, you also need to install the [Python implementation of Harmony](https://github.com/slowkow/harmonypy) and scikit-misc
