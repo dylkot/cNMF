@@ -29,9 +29,9 @@ pip install scikit-misc
 cNMF can be run from the command line without any parallelization using the example commands below:
 
 ```bash
-cnmf prepare --output-dir ./example_data --name example_cNMF -c ./example_data/counts_prefiltered.txt -k 5 6 7 8 9 10 11 12 13 --n-iter 100 --seed 14
+cnmf prepare --output-dir ./example_data --name example_cNMF -c ./example_data/counts_prefiltered.txt -k 5 6 7 8 9 10 11 12 13 --n-iter 100 --use_gpu --batch_size 5000 --seed 14
 
-cnmf factorize --output-dir ./example_data --name example_cNMF --worker-index 0 --total-workers 1
+cnmf factorize --output-dir ./example_data --name example_cNMF
 
 cnmf combine --output-dir ./example_data --name example_cNMF
 
