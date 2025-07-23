@@ -26,7 +26,7 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/dylkot/cNMF/issues",
     },
     classifiers=[
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.9",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
@@ -38,6 +38,7 @@ setuptools.setup(
         ],
     },
     install_requires=[
+    'nmf-torch',
    'scikit-learn>=1.0',
    'anndata>=0.9',
    'scanpy',
