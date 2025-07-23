@@ -12,7 +12,9 @@ import scipy.sparse as sp
 import warnings
 
 from scipy.spatial.distance import squareform
-from sklearn.decomposition import non_negative_factorization
+# from sklearn.decomposition import non_negative_factorization
+import torch
+from nmf import run_nmf
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import euclidean_distances
@@ -26,7 +28,6 @@ import matplotlib.pyplot as plt
 import scanpy as sc
 
 from multiprocessing import Pool 
-
 
 def save_df_to_npz(obj, filename):
     np.savez_compressed(filename, data=obj.values, index=obj.index.values, columns=obj.columns.values)
@@ -124,10 +125,6 @@ def efficient_ols_all_cols(X, Y, batch_size=1024, normalize_y=False):
     Beta, residuals, rank, s = np.linalg.lstsq(XtX, XtY, rcond=None)
     return Beta
 
-
-
-    
-
 def get_mean_var(X):
     scaler = StandardScaler(with_mean=False)
     scaler.fit(X)
@@ -164,7 +161,6 @@ def get_highvar_genes_sparse(expression, expected_fano_threshold=None,
         highvargenes = fano_ratio.sort_values(ascending=False).index[:numgenes]
         high_var_genes_ind = fano_ratio.index.isin(highvargenes)
         T=None
-
 
     else:
         if not expected_fano_threshold:
@@ -251,16 +247,145 @@ def compute_tpm(input_counts):
     return tpm
 
 
-def factorize_mp_signature(args):
-    """
-    wrapper around factorize to be able to use mp pool.
-    args is a list:
-    worker-i: int
-    total_workers: int
-    pointer to nmf object.
-    """
-    args[2].factorize(worker_i=args[0],  total_workers=args[1])
+# def factorize_mp_signature(args):
+#     """
+#     wrapper around factorize to be able to use mp pool.
+#     args is a list:
+#     worker-i: int
+#     total_workers: int
+#     pointer to nmf object.
+#     """
+#     args[2].factorize(worker_i=args[0],  total_workers=args[1])
 
+def fit_H_online(
+    X,
+    W,
+    H_init=None,
+    chunk_size=5000,
+    chunk_max_iter=200,
+    h_tol=0.05,
+    l1_reg_H=0.0,
+    l2_reg_H=0.0,
+    epsilon=1e-16,
+    device="cpu"
+    ):
+
+    """
+    Online MU to fit H only, given fixed W, accepts NumPy arrays or pandas DataFrames.
+
+    Parameters
+    ----------
+    X : np.ndarray or pd.DataFrame, shape (n_samples, n_features)
+        Non-negative data matrix.
+    W : np.ndarray or pd.DataFrame, shape (n_components, n_features)
+        Fixed basis matrix.
+    H_init : np.ndarray or pd.DataFrame or None
+        Initial guess for H; random non-negative if None.
+    chunk_size : int
+        Number of rows per online chunk.
+    chunk_max_iter : int
+        Max MU iterations per chunk.
+    h_tol : float
+        Local convergence tolerance for H updates.
+    l1_reg_H : float
+        L1 regularization strength on H.
+    l2_reg_H : float
+        L2 regularization strength on H.
+    epsilon : float
+        Small constant to avoid division by zero.
+    device : str
+        Torch device, e.g. "cpu" or "cuda".
+
+    Returns
+    -------
+    H : np.ndarray or pd.DataFrame
+        Fitted coefficient matrix H. If X and W are DataFrames, returns a DataFrame
+        with the same index as X and component labels from W/index or "comp_i".
+    """
+    # Detect pandas inputs
+    X_df = isinstance(X, pd.DataFrame)
+    W_df = isinstance(W, pd.DataFrame)
+
+    # Extract numpy arrays and remember labels
+    X_index = None
+    if X_df:
+        X_index = X.index
+        X = X.values
+        
+    W_index=None
+    if W_df:
+        comp_labels = list(W.index)
+        W = W.values
+    else:
+        comp_labels = [f"comp_{i}" for i in range(W.shape[0])]
+
+    # Handle H_init labels if provided
+    if isinstance(H_init, pd.DataFrame):
+        H_index = H_init.index
+        H_init = H_init.values
+    else:
+        H_index = X_index if X_df else None
+
+    if sp.issparse(X):
+        X = X.toarray()
+
+    # Move data to torch
+    dtype = torch.float32
+    dev = torch.device(device)
+    X_t = torch.from_numpy(X).to(dtype=dtype, device=dev)
+    W_t = torch.from_numpy(W).to(dtype=dtype, device=dev)
+
+    n, _ = X_t.shape
+    k, _ = W_t.shape
+
+    # Initialize H
+    if H_init is None:
+        H_t = torch.rand((n, k), dtype=dtype, device=dev)
+    else:
+        H_t = torch.from_numpy(H_init).to(dtype=dtype, device=dev).clamp(min=0.0)
+
+    # Precompute W Wᵀ
+    WWT = W_t @ W_t.T
+
+    # One pass through data in chunks
+    idx = 0
+    while idx < n:
+        sl = slice(idx, idx + chunk_size)
+        x = X_t[sl]
+        h = H_t[sl]
+
+        # Numerator for MU
+        xWT = x @ W_t.T
+        if l1_reg_H > 0:
+            numer = (xWT - l1_reg_H).clamp(min=0.0)
+        else:
+            numer = xWT
+
+        # MU inner loop
+        for _ in range(chunk_max_iter):
+            denom = h @ WWT
+            if l2_reg_H > 0:
+                denom = denom + l2_reg_H * h
+
+            rates = numer / denom
+            rates[denom < epsilon] = 0.0
+            h_new = h * rates
+
+            # Check local convergence
+            rel = torch.norm(h_new - h) / (torch.norm(h) + epsilon)
+            h = h_new
+            if rel < h_tol:
+                break
+
+        H_t[sl] = h
+        idx += chunk_size
+
+    H_np = H_t.cpu().numpy()
+
+    # Return as DataFrame if requested
+    if X_df or W_df:
+        return pd.DataFrame(H_np, index=X_index, columns=comp_labels)
+    return H_np
 
 class cNMF():
 
@@ -332,7 +457,8 @@ class cNMF():
 
     def prepare(self, counts_fn, components, n_iter = 100, densify=False, tpm_fn=None, seed=None,
                         beta_loss='frobenius',num_highvar_genes=2000, genes_file=None,
-                        alpha_usage=0.0, alpha_spectra=0.0, init='random', max_NMF_iter=1000):
+                        alpha_usage=0.0, alpha_spectra=0.0, init='random', 
+                        total_workers=-1, use_gpu=False, batch_size=5000, max_NMF_iter=1000):
         """
         Load input counts, reduce to high-variance genes, and variance normalize genes.
         Prepare file for distributing jobs over workers.
@@ -374,6 +500,15 @@ class cNMF():
 
         alpha_spectra : float, optional (default=0.0)
             Regularization parameter for NMF corresponding to alpha_H in scikit-learn
+        
+        total_workers : int, optional (default=-1)
+            Number of cpu cores to use. By default all are used.
+
+        use_gpuL bool, optional (default=False)
+            Whether to use GPU.
+
+        batch_size : int, optional (default=5000)
+            Batch size for online NMF leaning.
 
         max_NMF_iter : int, optional (default=1000)
             Maximum number of iterations per individual NMF run
@@ -455,7 +590,9 @@ class cNMF():
         self.save_norm_counts(norm_counts)
         (replicate_params, run_params) = self.get_nmf_iter_params(ks=components, n_iter=n_iter, random_state_seed=seed,
                                                                   beta_loss=beta_loss, alpha_usage=alpha_usage,
-                                                                  alpha_spectra=alpha_spectra, init=init, max_iter=max_NMF_iter)
+                                                                  alpha_spectra=alpha_spectra, init=init, 
+                                                                  total_workers=total_workers, use_gpu=use_gpu,
+                                                                  batch_size=batch_size, max_iter=max_NMF_iter)
         self.save_nmf_iter_params(replicate_params, run_params)
         
     
@@ -565,7 +702,9 @@ class cNMF():
                                random_state_seed = None,
                                beta_loss = 'kullback-leibler',
                                alpha_usage=0.0, alpha_spectra=0.0,
-                               init='random', max_iter=1000):
+                               init='random', total_workers=-1, 
+                               use_gpu=False, batch_size=5000, 
+                               max_iter=1000):
         """
         Create a DataFrame with parameters for NMF iterations.
 
@@ -616,19 +755,24 @@ class cNMF():
             warnings.warn(message, UserWarning)
 
         _nmf_kwargs = dict(
-                        alpha_W=alpha_usage,
-                        alpha_H=alpha_spectra,
-                        l1_ratio=0.0,
+                        alpha_W=alpha_spectra, # W, H are switched w.r.t. sklearn
+                        alpha_H=alpha_usage,
+                        l1_ratio_H=0.0,
+                        l1_ratio_W=0.0,
                         beta_loss=beta_loss,
-                        solver='mu',
+                        algo='mu',
                         tol=1e-4,
-                        max_iter=max_iter,
-                        init=init
+                        mode='online',
+                        online_chunk_max_iter=max_iter,
+                        online_chunk_size=batch_size,
+                        init=init,
+                        n_jobs=total_workers,
+                        use_gpu=use_gpu
                         )
         
         ## Coordinate descent is faster than multiplicative update but only works for frobenius
-        if beta_loss == 'frobenius':
-            _nmf_kwargs['solver'] = 'cd'
+        # if beta_loss == 'frobenius':
+        #     _nmf_kwargs['solver'] = 'cd'
 
         return(replicate_params, _nmf_kwargs)
     
@@ -669,24 +813,27 @@ class cNMF():
             Arguments to be passed to ``non_negative_factorization``
 
         """
-        (usages, spectra, niter) = non_negative_factorization(X, **nmf_kwargs)
+        # (usages, spectra, niter) = non_negative_factorization(X, **nmf_kwargs)
+        if sp.issparse(X):
+            X = X.toarray()
+        (usages, spectra, err) = run_nmf(X, **nmf_kwargs)
 
         return(spectra, usages)
 
 
-    def factorize_multi_process(self, total_workers):
-        """
-        multiproces wrapper for nmf.factorize()
-        factorize_multi_process() is direct wrapper around factorize to be able to launch it form mp.
-        total_workers: int; number of workers to use.
-        """
-        list_args = [(x, total_workers, self) for x in range(total_workers)]
+    # def factorize_multi_process(self, total_workers):
+    #     """
+    #     multiproces wrapper for nmf.factorize()
+    #     factorize_multi_process() is direct wrapper around factorize to be able to launch it form mp.
+    #     total_workers: int; number of workers to use.
+    #     """
+    #     list_args = [(x, total_workers, self) for x in range(total_workers)]
         
-        with Pool(total_workers) as p:
+    #     with Pool(total_workers) as p:
             
-            p.map(factorize_mp_signature, list_args)
-            p.close()
-            p.join()    
+    #         p.map(factorize_mp_signature, list_args)
+    #         p.close()
+    #         p.join()    
   
     
     def factorize(self,
@@ -773,7 +920,7 @@ class cNMF():
         return combined_spectra
     
     
-    def refit_usage(self, X, spectra):
+    def refit_usage(self, X, spectra, usage=None):
         """
         Takes an input data matrix and a fixed spectra and uses NNLS to find the optimal
         usage matrix. Generic kwargs for NMF are loaded from self.paths['nmf_run_parameters'].
@@ -790,16 +937,43 @@ class cNMF():
         """
 
         refit_nmf_kwargs = yaml.load(open(self.paths['nmf_run_parameters']), Loader=yaml.FullLoader)
-        if type(spectra) is pd.DataFrame:
-            refit_nmf_kwargs.update(dict(n_components = spectra.shape[0], H = spectra.values, update_H = False))
-        else:
-            refit_nmf_kwargs.update(dict(n_components = spectra.shape[0], H = spectra, update_H = False))
-            
-        _, rf_usages = self._nmf(X, nmf_kwargs=refit_nmf_kwargs)
-        if (type(X) is pd.DataFrame) and (type(spectra) is pd.DataFrame):
-            rf_usages = pd.DataFrame(rf_usages, index=X.index, columns=spectra.index)
-          
-        return(rf_usages)
+
+        beta_loss = refit_nmf_kwargs['beta_loss']
+
+        # Choose correct loss
+        if beta_loss == 'frobenius':
+            beta_loss = 2
+        elif beta_loss == 'kullback-leibler':
+            beta_loss = 1
+        elif beta_loss == 'itakura-saito':
+            beta_loss = 0
+        elif not (isinstance(beta_loss, int) or isinstance(beta_loss, float)):
+            raise ValueError("beta_loss must be a valid value: either from ['frobenius', 'kullback-leibler', 'itakura-saito'], or a numeric value.")
+
+        # Choose device
+        device_type = 'cpu'
+        if refit_nmf_kwargs['use_gpu']:
+            if torch.cuda.is_available():
+                device_type = 'cuda'
+                print("Use GPU mode.")
+            else:
+                print("CUDA is not available on your machine. Use CPU mode instead.")
+
+        # Refit usages (denoted H here)
+        rf_usages = fit_H_online(
+                        X,
+                        spectra,
+                        H_init=usage,
+                        chunk_size= refit_nmf_kwargs['online_chunk_size'],
+                        chunk_max_iter = refit_nmf_kwargs['online_chunk_max_iter'],
+                        h_tol= 0.05,
+                        l1_reg_H = refit_nmf_kwargs['l1_ratio_H'],
+                        l2_reg_H = 0.0,
+                        epsilon = 1e-16,
+                        device = device_type
+                        )
+
+        return (rf_usages)
     
     
     def refit_spectra(self, X, usage):
@@ -1243,6 +1417,7 @@ def main():
     parser.add_argument('-k', '--components', type=int, help='[prepare] Numper of components (k) for matrix factorization. Several can be specified with "-k 8 9 10"', nargs='+')
     parser.add_argument('-n', '--n-iter', type=int, help='[prepare] Number of factorization replicates', default=100)
     parser.add_argument('--total-workers', type=int, help='[all] Total number of workers to distribute jobs to', default=1)
+    parser.add_argument('--use_gpu', action='store_true', help='[prepare] Whether to use GPU.', default=False)
     parser.add_argument('--seed', type=int, help='[prepare] Seed for pseudorandom number generation', default=None)
     parser.add_argument('--genes-file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
     parser.add_argument('--numgenes', type=int, help='[prepare] Number of high variance genes to use for matrix factorization.', default=2000)
@@ -1250,8 +1425,9 @@ def main():
     parser.add_argument('--max-nmf-iter', type=int, help='[prepare] Max number of iterations per individual NMF run (default 1000)', default=1000)
     parser.add_argument('--beta-loss', type=str, choices=['frobenius', 'kullback-leibler', 'itakura-saito'], help='[prepare] Loss function for NMF (default frobenius)', default='frobenius')
     parser.add_argument('--init', type=str, choices=['random', 'nndsvd'], help='[prepare] Initialization algorithm for NMF (default random)', default='random')
-    parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse (default False)', action='store_true', default=False) 
-    parser.add_argument('--worker-index', type=int, help='[factorize] Index of current worker (the first worker should have index 0)', default=0)
+    parser.add_argument('--densify', dest='densify', help='[prepare] Treat the input data as non-sparse (default False)', action='store_true', default=False)
+    parser.add_argument('--batch_size', type=int, help='[prepare] Size of batch for online NMF learning.', default=5000) 
+    # parser.add_argument('--worker-index', type=int, help='[factorize] Index of current worker (the first worker should have index 0)', default=0)
     parser.add_argument('--skip-completed-runs', action='store_true', help='[factorize] Skip previously completed runs. Must re-run prepare first to update completed runs', default=False)
     parser.add_argument('--local-density-threshold', type=float, help='[consensus] Threshold for the local density filtering. This string must convert to a float >0 and <=2', default=0.5)
     parser.add_argument('--local-neighborhood-size', type=float, help='[consensus] Fraction of the number of replicates to use as nearest neighbors for local density filtering', default=0.30)
@@ -1266,11 +1442,11 @@ def main():
     if args.command == 'prepare':
         cnmf_obj.prepare(args.counts, components=args.components, n_iter=args.n_iter, densify=args.densify,
                          tpm_fn=args.tpm, seed=args.seed, beta_loss=args.beta_loss, max_NMF_iter=args.max_nmf_iter,
-                         num_highvar_genes=args.numgenes, genes_file=args.genes_file, init=args.init)
+                         num_highvar_genes=args.numgenes, genes_file=args.genes_file, init=args.init, total_workers=args.total_workers,
+                         use_gpu=args.use_gpu, batch_size=args.batch_size)
 
     elif args.command == 'factorize':
-        cnmf_obj.factorize(worker_i=args.worker_index, total_workers=args.total_workers,
-                           skip_completed_runs=args.skip_completed_runs)
+        cnmf_obj.factorize(skip_completed_runs=args.skip_completed_runs)
 
     elif args.command == 'combine':
         cnmf_obj.combine(components=args.components)
