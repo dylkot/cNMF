@@ -383,8 +383,8 @@ def fit_H_online(
     H_np = H_t.cpu().numpy()
 
     # Return as DataFrame if requested
-    if X_df or W_df:
-        return pd.DataFrame(H_np, index=X_index, columns=comp_labels)
+    # if X_df or W_df:
+    #     return pd.DataFrame(H_np, index=X_index, columns=comp_labels)
     return H_np
 
 class cNMF():
@@ -1091,7 +1091,7 @@ class cNMF():
 
         # Obtain reconstructed count matrix by re-fitting usage and computing dot product: usage.dot(spectra)
         rf_usages = self.refit_usage(norm_counts.X, median_spectra)
-        rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)        
+        rf_usages = pd.DataFrame(rf_usages, index=norm_counts.obs.index, columns=median_spectra.index)     
         
         if skip_density_and_return_after_stats:
             silhouette = silhouette_score(l2_spectra.values, kmeans_cluster_labels, metric='euclidean')
