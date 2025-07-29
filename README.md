@@ -1,6 +1,6 @@
-### $$\color{red}\textbf{Notice: This is a fork of the cNMF repo with the core scikit-learn NMF implementation switched out for nmf-torch.}$$
-### $$\color{red}\textbf{This fork enables faster and scalable infernece using pytorch but has not been benchmarked against the original.}$$ 
-### $$\color{red}\textbf{Use at your own discretion.}$$
+### $\textcolor{red}{\textbf{Notice: This is a fork of the cNMF repo with the core scikit-learn NMF implementation switched out for nmf-torch.}}$
+### $\textcolor{red}{\textbf{This fork enables faster and scalable inference using pytorch but has not been benchmarked against the original.}}$
+### $\textcolor{red}{\textbf{Use at your own discretion.}}$
 
 # Consensus NMF (cNMF)
 
@@ -45,8 +45,8 @@ Or alternatively, the same steps can be run from within a Python environment usi
 ```python
 from cnmf import cNMF
 cnmf_obj = cNMF(output_dir="./example_data", name="example_cNMF")
-cnmf_obj.prepare(counts_fn="./example_data/counts_prefiltered.txt", components=np.arange(5,14), n_iter=100, seed=14)
-cnmf_obj.factorize(worker_i=0, total_workers=1)
+cnmf_obj.prepare(counts_fn="./example_data/counts_prefiltered.txt", components=np.arange(5,14), n_iter=100, seed=14, use_gpu=True)
+cnmf_obj.factorize()
 cnmf_obj.combine()
 cnmf_obj.k_selection_plot()
 cnmf_obj.consensus(k=10, density_threshold=0.01)
@@ -64,18 +64,10 @@ Output data files will all be available in the ./example_data/example_cNMF direc
    - Clustergram diagnostic plot - `example_data/example_cNMF/example_cNMF.clustering.k_10.dt_0_01.pdf`
 
 Some usage notes:
- - __Parallelization__: The factorize step can be parallelized with the --total-workers flag and then submitting multiple jobs, one per worker, indexed starting by 0. For example:
-  ```
-  cnmf factorize --output-dir ./example_data --name example_cNMF --worker-index 0 --total-workers 3 &
-  cnmf factorize --output-dir ./example_data --name example_cNMF --worker-index 1 --total-workers 3 &
-  cnmf factorize --output-dir ./example_data --name example_cNMF --worker-index 2 --total-workers 3 &
-  ```
-  would break the factorization jobs up into 3 batches and submit them independently. This can be used with compute clusters to run the factorizations in parallel (see tutorials for example).
  - __Input data__: Input data can be provided in 3 ways:
     - 1. as a scanpy file ending in .h5ad containg counts as the data feature. See the PBMC dataset tutorial for an example of how to generate the Scanpy object from the data provided by 10X. Because Scanpy uses sparse matrices by default, the .h5ad data structure can take up much less memory than the raw counts matrix and can be much faster to load. 
     - 2. as a raw tab-delimited text file containing row labels with cell IDs (barcodes) and column labels as gene IDs
     - 3. as a 10x-Genomics-formatted mtx directory. You provide the path to the counts.mtx file or counts.mtx.gz file to counts_fn. It expects there to be barcodes.tsv and genes.tsv in the directory as well
-
     
 See the tutorials or Stepwise_Guide.md for more details
 
