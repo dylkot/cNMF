@@ -221,7 +221,8 @@ class Preprocess():
         else:
             raise Exception('data should either be an AnnData object or a list of 2 AnnData objects')
 
-        tp10k = sc.pp.normalize_total(adata_RNA, target_sum=librarysize_targetsum, copy=True)
+        tp10k = adata_RNA.copy()
+        sc.pp.normalize_total(tp10k, target_sum=librarysize_targetsum, copy=False)
         adata_RNA, hvgs = self.normalize_batchcorrect(adata_RNA, harmony_vars=harmony_vars,
                                                 n_top_genes = n_top_rna_genes, 
                                                 librarysize_targetsum= librarysize_targetsum,
