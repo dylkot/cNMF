@@ -312,7 +312,7 @@ class Preprocess():
         """  
                 
        if n_top_genes is not None:
-            if _adata.layers['log1p_norm_regressed'] is not None:
+            if 'log1p_norm_regressed' in _adata.layers and _adata.layers['log1p_norm_regressed'] is not None: # modified this code: aregano
                 _adata.X = _adata.layers['log1p_norm_regressed'].copy()
                 sc.pp.highly_variable_genes(_adata, 
                         flavor = 'seurat', # allows for hvg using log1p normalized reads, which is required if you want to regress out variables
@@ -327,7 +327,7 @@ class Preprocess():
             raise Exception("If a numeric value for n_top_genes is not provided, you must include a highly_variable column in _adata")                            
             
         if harmony_vars is not None:
-            if _adata.layers['norm_regressed'] is not None:
+            if 'norm_regressed' in _adata.layers and _adata.layers['norm_regressed'] is not None:
                 _adata.X = _adata.layers['norm_regressed'].copy()
                 anorm = _adata[:, _adata.var['highly_variable']]
                 print('Using normalized regressed data for batch correction')
