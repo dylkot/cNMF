@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from collections.abc import Collection
 from sklearn.feature_selection import mutual_info_classif
 import pandas as pd
-from scipy.sparse import hstack, issparse
+from scipy.sparse import hstack, issparse, csr_matrix
 
 def moe_correct_ridge(Z_orig, Z_cos, Z_corr, R, W, K, Phi_Rk, Phi_moe, lamb):
     Z_corr = Z_orig.copy()
@@ -135,6 +135,7 @@ class Preprocess():
     def preprocess_for_cnmf(self, _adata, feature_type_col = None, adt_feature_name = 'Antibody Capture',
                             harmony_vars= None, n_top_rna_genes = 2000, librarysize_targetsum= 1e4,
                             max_scaled_thresh = None, quantile_thresh = .9999, makeplots=True, theta=1,
+                            regression_vars = None, add_intercept=False,
                             save_output_base=None, max_iter_harmony=20):
         """
         Runs minimal preprocessing for cNMF, specifically preparing an HVG filtered, normalized, optionally batch corrected, output file
@@ -175,6 +176,9 @@ class Preprocess():
         makeplots : boolean (default=True)
         
         theta : float (default=1)
+        
+        regression_vars : list of strings (default=None)
+            If provided, regress out these variables from the RNA data prior to further normalization, the strings should indicate columns from adata.obs showing pct of expression in each cell 
         
         max_iter_harmony : int (default=20)
             Maximum number of Harmony iterations to use
@@ -223,6 +227,21 @@ class Preprocess():
 
         tp10k = adata_RNA.copy()
         sc.pp.normalize_total(tp10k, target_sum=librarysize_targetsum, copy=False)
+        adata_RNA.layers['raw'] = adata_RNA.X.copy()
+        
+        if regression_vars is not None: # Added this code: aregano
+            sc.pp.normalize_total(adata_RNA, target_sum=librarysize_targetsum, copy=False)
+            sc.pp.log1p(adata_RNA)
+            if add_intercept:
+                sc.pp.regress_out(adata_RNA, regression_vars, add_intercept=add_intercept) # modified regress_out function in scanpy to allow adding the intercept
+            else:
+                sc.pp.regress_out(adata_RNA, regression_vars)
+            # adata_RNA.X = adata_RNA.X - adata_RNA.X.min() # to avoid negative values after regression
+            adata_RNA.layers['log1p_norm_regressed'] = csr_matrix(adata_RNA.X.copy())
+            adata_RNA.X = np.expm1(adata_RNA.X)
+            adata_RNA.layers['norm_regressed'] = csr_matrix(adata_RNA.X.copy())
+            
+            
         adata_RNA, hvgs = self.normalize_batchcorrect(adata_RNA, harmony_vars=harmony_vars,
                                                 n_top_genes = n_top_rna_genes, 
                                                 librarysize_targetsum= librarysize_targetsum,
@@ -292,14 +311,29 @@ class Preprocess():
             Maximum number of Harmony iterations to use
         """  
                 
-        if n_top_genes is not None:
-            sc.pp.highly_variable_genes(_adata, flavor='seurat_v3', n_top_genes=n_top_genes)
+       if n_top_genes is not None:
+            if 'log1p_norm_regressed' in _adata.layers and _adata.layers['log1p_norm_regressed'] is not None: # modified this code: aregano
+                _adata.X = _adata.layers['log1p_norm_regressed'].copy()
+                sc.pp.highly_variable_genes(_adata, 
+                        flavor = 'seurat', # allows for hvg using log1p normalized reads, which is required if you want to regress out variables
+                        n_top_genes=n_top_genes)
+                _adata.X = _adata.layers['raw'].copy() 
+                print('Using log1p normalized regressed data to select HVGs')
+            else:
+                sc.pp.highly_variable_genes(_adata, 
+                                            flavor='seurat_v3', # when not regressing out variables you can directly use raw counts
+                                            n_top_genes=n_top_genes)
         elif 'highly_variable' not in _adata.var.columns:
             raise Exception("If a numeric value for n_top_genes is not provided, you must include a highly_variable column in _adata")                            
             
         if harmony_vars is not None:
-            anorm = sc.pp.normalize_total(_adata, target_sum=librarysize_targetsum, copy=True)
-            anorm = anorm[:, _adata.var['highly_variable']]
+            if 'norm_regressed' in _adata.layers and _adata.layers['norm_regressed'] is not None:
+                _adata.X = _adata.layers['norm_regressed'].copy()
+                anorm = _adata[:, _adata.var['highly_variable']]
+                print('Using normalized regressed data for batch correction')
+            else:
+                anorm = sc.pp.normalize_total(_adata, target_sum=librarysize_targetsum, copy=True)
+                anorm = anorm[:, _adata.var['highly_variable']]
             stdscale_quantile_celing(anorm, max_value=max_scaled_thresh, quantile_thresh=quantile_thresh)
             
             _adata = _adata[:, _adata.var['highly_variable']]
