@@ -234,13 +234,15 @@ class Preprocess():
             sc.pp.log1p(adata_RNA)
             if add_intercept:
                 sc.pp.regress_out(adata_RNA, regression_vars, add_intercept=add_intercept) # modified regress_out function in scanpy to allow adding the intercept
+                print('regressed out matrix produced with intercept')
             else:
                 sc.pp.regress_out(adata_RNA, regression_vars)
-            # adata_RNA.X = adata_RNA.X - adata_RNA.X.min() # to avoid negative values after regression
+                print('regressed out matrix produced without intercept')
             adata_RNA.layers['log1p_norm_regressed'] = csr_matrix(adata_RNA.X.copy())
             adata_RNA.X = np.expm1(adata_RNA.X)
             adata_RNA.layers['norm_regressed'] = csr_matrix(adata_RNA.X.copy())
-            
+            adata_RNA.X = adata_RNA.layers['log1p_norm_regressed'].copy()
+            print('starting normalization and batch correction')
             
         adata_RNA, hvgs = self.normalize_batchcorrect(adata_RNA, harmony_vars=harmony_vars,
                                                 n_top_genes = n_top_rna_genes, 
