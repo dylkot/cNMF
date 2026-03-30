@@ -135,7 +135,7 @@ class Preprocess():
     def preprocess_for_cnmf(self, _adata, feature_type_col = None, adt_feature_name = 'Antibody Capture',
                             harmony_vars= None, n_top_rna_genes = 2000, librarysize_targetsum= 1e4,
                             max_scaled_thresh = None, quantile_thresh = .9999, makeplots=True, theta=1,
-                            save_output_base=None, max_iter_harmony=20):
+                            save_output_base=None, max_iter_harmony=20, exclude_genes=None):
         """
         Runs minimal preprocessing for cNMF, specifically preparing an HVG filtered, normalized, optionally batch corrected, output file
         from the RNA to use as counts input for cNMF as well as a library-size normalized file potentially including both RNA and ADT to
@@ -179,13 +179,21 @@ class Preprocess():
         max_iter_harmony : int (default=20)
             Maximum number of Harmony iterations to use
         
+        exclude_genes : list of str, optional (default=None)
+            If provided, these gene names are removed from the RNA AnnData before HVG
+            selection and batch correction, so they cannot become HVGs and do not appear
+            in the corrected cNMF input. They are retained in the tp10k output so they
+            are available for program representation. Useful for removing immunoglobulin
+            variable chain genes (IGHV*, IGKV*, IGLV*) which reflect clonal BCR diversity
+            rather than transcriptional programs.
+
         save_output_base : str (default=None)
             If provided, saves output variables to disk with the following paths
              adata_RNA : [save_output_base].Corrected.HVG.Varnorm.h5ad
              adata_tp10k : [save_output_base].TP10K.h5ad
              hvgs : [save_output_base].Corrected.HVGs.txt
-                
-            
+
+
         Returns
         ----------
         adata_RNA : AnnData
@@ -223,6 +231,17 @@ class Preprocess():
 
         tp10k = adata_RNA.copy()
         sc.pp.normalize_total(tp10k, target_sum=librarysize_targetsum, copy=False)
+
+        if exclude_genes is not None:
+            exclude_mask = adata_RNA.var_names.isin(exclude_genes)
+            n_excluded = exclude_mask.sum()
+            if n_excluded > 0:
+                print(f"Excluding {n_excluded} genes from cNMF input (IG variable chain genes); retained in tp10k:")
+                print(list(adata_RNA.var_names[exclude_mask]))
+                adata_RNA = adata_RNA[:, ~exclude_mask]
+            else:
+                print("exclude_genes provided but none found in adata_RNA.var_names.")
+
         adata_RNA, hvgs = self.normalize_batchcorrect(adata_RNA, harmony_vars=harmony_vars,
                                                 n_top_genes = n_top_rna_genes, 
                                                 librarysize_targetsum= librarysize_targetsum,
