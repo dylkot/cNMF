@@ -236,7 +236,7 @@ class Preprocess():
             exclude_mask = adata_RNA.var_names.isin(exclude_genes)
             n_excluded = exclude_mask.sum()
             if n_excluded > 0:
-                print(f"Excluding {n_excluded} genes from cNMF input (IG variable chain genes); retained in tp10k:")
+                print(f"Excluding {n_excluded} genes from cNMF input (retained in tp10k):")
                 print(list(adata_RNA.var_names[exclude_mask]))
                 adata_RNA = adata_RNA[:, ~exclude_mask]
             else:
