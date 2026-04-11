@@ -397,10 +397,24 @@ class Preprocess():
             
         harmony_res = harmonypy.run_harmony(pca, obs, harmony_vars, max_iter_harmony = max_iter_harmony,
                                             theta=theta)
-        
-        X_pca_harmony = harmony_res.Z_corr.T       
-        _, X_corr, _, _ = moe_correct_ridge(X.T, None, None, harmony_res.R, None, harmony_res.K,
-                                            None, harmony_res.Phi_moe, harmony_res.lamb)
+
+        # Older harmonypy used a cells-as-columns layout (Z_corr: (n_components, n_cells),
+        # R: (K, n_cells), Phi_moe: (n_covariates+1, n_cells)). Newer versions flipped to
+        # cells-as-rows. Detect once from Z_corr and transpose everything downstream so
+        # the rest of this function (and moe_correct_ridge) can assume the old convention.
+        Z_corr = np.asarray(harmony_res.Z_corr)
+        R = np.asarray(harmony_res.R)
+        Phi_moe = np.asarray(harmony_res.Phi_moe)
+        new_harmony = Z_corr.shape[0] == pca.shape[0]
+        if new_harmony:
+            X_pca_harmony = Z_corr
+            R = R.T
+            Phi_moe = Phi_moe.T
+        else:
+            X_pca_harmony = Z_corr.T
+
+        _, X_corr, _, _ = moe_correct_ridge(X.T, None, None, R, None, harmony_res.K,
+                                            None, Phi_moe, harmony_res.lamb)
         X_corr = np.array(X_corr.T)
         
         X_corr[X_corr<0] = 0
